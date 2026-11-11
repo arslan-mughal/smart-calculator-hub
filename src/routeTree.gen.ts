@@ -10,33 +10,116 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AgeCalculatorRouteImport } from './routes/age-calculator'
+import { Route as BmiCalculatorRouteImport } from './routes/bmi-calculator'
+import { Route as CompoundInterestCalculatorRouteImport } from './routes/compound-interest-calculator'
+import { Route as LoanCalculatorRouteImport } from './routes/loan-calculator'
+import { Route as PercentageCalculatorRouteImport } from './routes/percentage-calculator'
+import { Route as TipCalculatorRouteImport } from './routes/tip-calculator'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AgeCalculatorRoute = AgeCalculatorRouteImport.update({
+  id: '/age-calculator',
+  path: '/age-calculator',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BmiCalculatorRoute = BmiCalculatorRouteImport.update({
+  id: '/bmi-calculator',
+  path: '/bmi-calculator',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CompoundInterestCalculatorRoute =
+  CompoundInterestCalculatorRouteImport.update({
+    id: '/compound-interest-calculator',
+    path: '/compound-interest-calculator',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const LoanCalculatorRoute = LoanCalculatorRouteImport.update({
+  id: '/loan-calculator',
+  path: '/loan-calculator',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PercentageCalculatorRoute = PercentageCalculatorRouteImport.update({
+  id: '/percentage-calculator',
+  path: '/percentage-calculator',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TipCalculatorRoute = TipCalculatorRouteImport.update({
+  id: '/tip-calculator',
+  path: '/tip-calculator',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/age-calculator': typeof AgeCalculatorRoute
+  '/bmi-calculator': typeof BmiCalculatorRoute
+  '/compound-interest-calculator': typeof CompoundInterestCalculatorRoute
+  '/loan-calculator': typeof LoanCalculatorRoute
+  '/percentage-calculator': typeof PercentageCalculatorRoute
+  '/tip-calculator': typeof TipCalculatorRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/age-calculator': typeof AgeCalculatorRoute
+  '/bmi-calculator': typeof BmiCalculatorRoute
+  '/compound-interest-calculator': typeof CompoundInterestCalculatorRoute
+  '/loan-calculator': typeof LoanCalculatorRoute
+  '/percentage-calculator': typeof PercentageCalculatorRoute
+  '/tip-calculator': typeof TipCalculatorRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/age-calculator': typeof AgeCalculatorRoute
+  '/bmi-calculator': typeof BmiCalculatorRoute
+  '/compound-interest-calculator': typeof CompoundInterestCalculatorRoute
+  '/loan-calculator': typeof LoanCalculatorRoute
+  '/percentage-calculator': typeof PercentageCalculatorRoute
+  '/tip-calculator': typeof TipCalculatorRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/age-calculator'
+    | '/bmi-calculator'
+    | '/compound-interest-calculator'
+    | '/loan-calculator'
+    | '/percentage-calculator'
+    | '/tip-calculator'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/age-calculator'
+    | '/bmi-calculator'
+    | '/compound-interest-calculator'
+    | '/loan-calculator'
+    | '/percentage-calculator'
+    | '/tip-calculator'
+  id:
+    | '__root__'
+    | '/'
+    | '/age-calculator'
+    | '/bmi-calculator'
+    | '/compound-interest-calculator'
+    | '/loan-calculator'
+    | '/percentage-calculator'
+    | '/tip-calculator'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AgeCalculatorRoute: typeof AgeCalculatorRoute
+  BmiCalculatorRoute: typeof BmiCalculatorRoute
+  CompoundInterestCalculatorRoute: typeof CompoundInterestCalculatorRoute
+  LoanCalculatorRoute: typeof LoanCalculatorRoute
+  PercentageCalculatorRoute: typeof PercentageCalculatorRoute
+  TipCalculatorRoute: typeof TipCalculatorRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +131,59 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/age-calculator': {
+      id: '/age-calculator'
+      path: '/age-calculator'
+      fullPath: '/age-calculator'
+      preLoaderRoute: typeof AgeCalculatorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bmi-calculator': {
+      id: '/bmi-calculator'
+      path: '/bmi-calculator'
+      fullPath: '/bmi-calculator'
+      preLoaderRoute: typeof BmiCalculatorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/compound-interest-calculator': {
+      id: '/compound-interest-calculator'
+      path: '/compound-interest-calculator'
+      fullPath: '/compound-interest-calculator'
+      preLoaderRoute: typeof CompoundInterestCalculatorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/loan-calculator': {
+      id: '/loan-calculator'
+      path: '/loan-calculator'
+      fullPath: '/loan-calculator'
+      preLoaderRoute: typeof LoanCalculatorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/percentage-calculator': {
+      id: '/percentage-calculator'
+      path: '/percentage-calculator'
+      fullPath: '/percentage-calculator'
+      preLoaderRoute: typeof PercentageCalculatorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tip-calculator': {
+      id: '/tip-calculator'
+      path: '/tip-calculator'
+      fullPath: '/tip-calculator'
+      preLoaderRoute: typeof TipCalculatorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AgeCalculatorRoute: AgeCalculatorRoute,
+  BmiCalculatorRoute: BmiCalculatorRoute,
+  CompoundInterestCalculatorRoute: CompoundInterestCalculatorRoute,
+  LoanCalculatorRoute: LoanCalculatorRoute,
+  PercentageCalculatorRoute: PercentageCalculatorRoute,
+  TipCalculatorRoute: TipCalculatorRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
