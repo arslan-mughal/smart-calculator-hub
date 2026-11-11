@@ -8,21 +8,23 @@ export type Input =
 export type Out = { label: string; value: string };
 export type Calc = {
   slug: string; name: string; category: Category; short: string; keywords: string;
-  inputs: Input[]; compute: (v: Record<string, string>) => Out[];
+  inputs: Input[]; // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  compute: (v: any) => Out[];
   about: string; formula: string; example: string; tips: string[]; faqs: { q: string; a: string }[];
 };
 export const categories = ["Finance", "Health & Fitness", "Pregnancy", "Math", "Education", "Date & Time", "Conversion"] as const;
 export type Category = (typeof categories)[number];
 
-const N = (s: string) => parseFloat(s);
+const N = (s: string | undefined) => parseFloat(s ?? "");
 const m = (n: number) => fmt(n, 2);
-const D = (s: string) => new Date(s + "T00:00:00");
+const D = (s: string | undefined) => new Date(s + "T00:00:00");
 const iso = (d: Date) => (isNaN(d.getTime()) ? "—" : d.toLocaleDateString("en-US", { weekday: "short", year: "numeric", month: "long", day: "numeric" }));
-const list = (s: string) => s.split(/[\s,;]+/).map(Number).filter((x) => Number.isFinite(x));
+const list = (s: string = "") => s.split(/[\s,;]+/).map(Number).filter((x) => Number.isFinite(x));
 const sex = { key: "sex", label: "Sex", type: "select" as const, def: "m", options: [{ v: "m", l: "Male" }, { v: "f", l: "Female" }] };
 const activity = { key: "act", label: "Activity level", type: "select" as const, def: "1.55", options: [
   { v: "1.2", l: "Sedentary (little exercise)" }, { v: "1.375", l: "Light (1–3 days/week)" }, { v: "1.55", l: "Moderate (3–5 days/week)" }, { v: "1.725", l: "Very active (6–7 days/week)" }, { v: "1.9", l: "Athlete (2x per day)" }] };
-const bmrOf = (v: Record<string, string>) => 10 * N(v.kg) + 6.25 * N(v.cm) - 5 * N(v.age) + (v.sex === "m" ? 5 : -161);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const bmrOf = (v: any) => 10 * N(v.kg) + 6.25 * N(v.cm) - 5 * N(v.age) + (v.sex === "m" ? 5 : -161);
 const addDays = (d: Date, n: number) => new Date(d.getTime() + n * 86400000);
 
 function loanCalc(slug: string, name: string, short: string, keywords: string, def: [string, string, string], extra: Partial<Calc>): Calc {
