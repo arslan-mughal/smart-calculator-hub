@@ -1,19 +1,9 @@
 import { ageBetween, bmi, bmiCategory, compound, emi, fmt } from "./calculators";
+import { extraCalcs } from "./extra-tools";
+import type { Calc } from "./tool-types";
 
-export type Input =
-  | { key: string; label: string; type?: "number"; def: string; suffix?: string }
-  | { key: string; label: string; type: "date"; def: string }
-  | { key: string; label: string; type: "text"; def: string; hint?: string }
-  | { key: string; label: string; type: "select"; def: string; options: { v: string; l: string }[] };
-export type Out = { label: string; value: string };
-export type Calc = {
-  slug: string; name: string; category: Category; short: string; keywords: string;
-  inputs: Input[]; // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  compute: (v: any) => Out[];
-  about: string; formula: string; example: string; tips: string[]; faqs: { q: string; a: string }[];
-};
-export const categories = ["Finance", "Health & Fitness", "Pregnancy", "Math", "Education", "Date & Time", "Conversion"] as const;
-export type Category = (typeof categories)[number];
+export { categories } from "./tool-types";
+export type { Calc, Category, Input, Out } from "./tool-types";
 
 const N = (s: string | undefined) => parseFloat(s ?? "");
 const m = (n: number) => fmt(n, 2);
@@ -353,7 +343,7 @@ export const calcs: Calc[] = [
     slug: "fraction-calculator", name: "Fraction Calculator", category: "Math", short: "Add, subtract, multiply and divide fractions.",
     keywords: "fraction calculator, adding fractions calculator, simplify fractions, fraction to decimal, mixed number calculator",
     inputs: [{ key: "a", label: "Numerator 1", def: "3" }, { key: "b", label: "Denominator 1", def: "4" }, { key: "op", label: "Operation", type: "select", def: "+", options: ["+", "−", "×", "÷"].map((x) => ({ v: x, l: x })) }, { key: "c", label: "Numerator 2", def: "2" }, { key: "d", label: "Denominator 2", def: "5" }],
-    compute: (v) => { const [a, b, c, d] = [v.a, v.b, v.c, v.d].map((x) => Math.round(N(x))); let n = 0, q = 1; if (v.op === "+") { n = a * d + c * b; q = b * d; } else if (v.op === "−") { n = a * d - c * b; q = b * d; } else if (v.op === "×") { n = a * c; q = b * d; } else { n = a * d; q = b * c; } const g = (x: number, y: number): number => (y ? g(y, x % y) : Math.abs(x)); const k = g(n, q) || 1; if (q < 0) { n = -n; q = -q; } const N2 = n / k, Q = q / k; const whole = Math.trunc(N2 / Q); return [{ label: "Result (simplified)", value: `${N2}/${Q}` }, { label: "Mixed number", value: whole && N2 % Q ? `${whole} ${Math.abs(N2 % Q)}/${Q}` : `${N2 / Q === whole ? whole : "—"}` }, { label: "Decimal", value: fmt(N2 / Q, 6) }]; },
+    compute: (v) => { const a = Math.round(N(v.a)), b = Math.round(N(v.b)), c = Math.round(N(v.c)), d = Math.round(N(v.d)); let n = 0, q = 1; if (v.op === "+") { n = a * d + c * b; q = b * d; } else if (v.op === "−") { n = a * d - c * b; q = b * d; } else if (v.op === "×") { n = a * c; q = b * d; } else { n = a * d; q = b * c; } const g = (x: number, y: number): number => (y ? g(y, x % y) : Math.abs(x)); const k = g(n, q) || 1; if (q < 0) { n = -n; q = -q; } const N2 = n / k, Q = q / k; const whole = Math.trunc(N2 / Q); return [{ label: "Result (simplified)", value: `${N2}/${Q}` }, { label: "Mixed number", value: whole && N2 % Q ? `${whole} ${Math.abs(N2 % Q)}/${Q}` : `${N2 / Q === whole ? whole : "—"}` }, { label: "Decimal", value: fmt(N2 / Q, 6) }]; },
     about: "A fraction calculator performs arithmetic on fractions and reduces the answer to its simplest form, with mixed-number and decimal equivalents.",
     formula: "a/b + c/d = (ad + bc)/bd. a/b × c/d = ac/bd. a/b ÷ c/d = ad/bc. Simplify by dividing by the greatest common divisor.",
     example: "3/4 + 2/5 = 15/20 + 8/20 = 23/20 = 1 3/20 = 1.15.",
@@ -374,7 +364,7 @@ export const calcs: Calc[] = [
     slug: "average-calculator", name: "Average Calculator", category: "Math", short: "Mean, median, mode and range of a list.",
     keywords: "average calculator, mean calculator, median calculator, mode calculator, mean median mode",
     inputs: [{ key: "l", label: "Numbers (comma or space separated)", type: "text", def: "4, 8, 15, 16, 23, 42, 8" }],
-    compute: (v) => { const a = list(v.l).sort((x, y) => x - y); if (!a.length) return [{ label: "Mean", value: "—" }]; const mean = a.reduce((s, x) => s + x, 0) / a.length; const med = a.length % 2 ? a[(a.length - 1) / 2] : (a[a.length / 2 - 1] + a[a.length / 2]) / 2; const cnt: Record<number, number> = {}; a.forEach((x) => (cnt[x] = (cnt[x] || 0) + 1)); const mx = Math.max(...Object.values(cnt)); const mode = mx > 1 ? Object.keys(cnt).filter((k) => cnt[+k] === mx).join(", ") : "None"; return [{ label: "Mean (average)", value: fmt(mean, 4) }, { label: "Median", value: fmt(med, 4) }, { label: "Mode", value: mode }, { label: "Range", value: fmt(a[a.length - 1] - a[0], 4) }, { label: "Count / Sum", value: `${a.length} / ${fmt(a.reduce((s, x) => s + x, 0), 4)}` }]; },
+    compute: (v) => { const a = list(v.l).sort((x, y) => x - y); if (!a.length) return [{ label: "Mean", value: "—" }]; const mean = a.reduce((s, x) => s + x, 0) / a.length; const med = a.length % 2 ? a[(a.length - 1) / 2]! : (a[a.length / 2 - 1]! + a[a.length / 2]!) / 2; const cnt: Record<number, number> = {}; a.forEach((x) => (cnt[x] = (cnt[x] || 0) + 1)); const mx = Math.max(...Object.values(cnt)); const mode = mx > 1 ? Object.keys(cnt).filter((k) => cnt[+k] === mx).join(", ") : "None"; return [{ label: "Mean (average)", value: fmt(mean, 4) }, { label: "Median", value: fmt(med, 4) }, { label: "Mode", value: mode }, { label: "Range", value: fmt(a[a.length - 1]! - a[0]!, 4) }, { label: "Count / Sum", value: `${a.length} / ${fmt(a.reduce((s, x) => s + x, 0), 4)}` }]; },
     about: "The average (arithmetic mean) is the sum of values divided by how many there are. Median and mode give a fuller picture when data has outliers.",
     formula: "Mean = Σx ÷ n. Median = middle value of the sorted list. Mode = most frequent value.",
     example: "For 4, 8, 8, 15, 16, 23, 42: mean 16.57, median 15, mode 8, range 38.",
@@ -398,7 +388,7 @@ export const calcs: Calc[] = [
     slug: "gpa-calculator", name: "GPA Calculator", category: "Education", short: "Weighted GPA from grades and credit hours.",
     keywords: "gpa calculator, college gpa calculator, cumulative gpa calculator, grade point average calculator, semester gpa",
     inputs: [{ key: "g", label: "Grades (letters or points, comma separated)", type: "text", def: "A, B+, A-, B, A" }, { key: "c", label: "Credits for each course", type: "text", def: "3, 4, 3, 3, 2" }],
-    compute: (v) => { const map: Record<string, number> = { "A+": 4, A: 4, "A-": 3.7, "B+": 3.3, B: 3, "B-": 2.7, "C+": 2.3, C: 2, "C-": 1.7, "D+": 1.3, D: 1, "D-": 0.7, F: 0 }; const g = v.g.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean).map((s) => (s in map ? map[s] : parseFloat(s))); const c = list(v.c); let pts = 0, cr = 0; g.forEach((x, i) => { const k = c[i] ?? 1; if (Number.isFinite(x)) { pts += x * k; cr += k; } }); return [{ label: "GPA", value: cr ? fmt(pts / cr, 2) : "—" }, { label: "Total credits", value: fmt(cr, 1) }, { label: "Quality points", value: fmt(pts, 2) }]; },
+    compute: (v) => { const map: Record<string, number> = { "A+": 4, A: 4, "A-": 3.7, "B+": 3.3, B: 3, "B-": 2.7, "C+": 2.3, C: 2, "C-": 1.7, "D+": 1.3, D: 1, "D-": 0.7, F: 0 }; const g: number[] = String(v.g).split(",").map((s: string) => s.trim().toUpperCase()).filter(Boolean).map((s: string) => (s in map ? map[s]! : parseFloat(s))); const c = list(v.c); let pts = 0, cr = 0; g.forEach((x: number, i: number) => { const k = c[i] ?? 1; if (Number.isFinite(x)) { pts += x * k; cr += k; } }); return [{ label: "GPA", value: cr ? fmt(pts / cr, 2) : "—" }, { label: "Total credits", value: fmt(cr, 1) }, { label: "Quality points", value: fmt(pts, 2) }]; },
     about: "Grade Point Average converts letter grades into points on a 4.0 scale and weights them by credit hours. It's the standard measure used by US colleges and many universities worldwide.",
     formula: "GPA = Σ(grade points × credits) ÷ Σcredits. A = 4.0, A− = 3.7, B+ = 3.3, B = 3.0 …",
     example: "A (3 cr), B+ (4 cr), A− (3 cr), B (3 cr), A (2 cr) gives 52.3 quality points over 15 credits = 3.49 GPA.",
@@ -476,13 +466,14 @@ export const calcs: Calc[] = [
   {
     slug: "unit-converter", name: "Length Unit Converter", category: "Conversion", short: "Metres, feet, inches, miles and more.",
     keywords: "unit converter, length converter, cm to inches, feet to meters, km to miles, metric conversion",
-    inputs: [{ key: "x", label: "Value", def: "100" }, { key: "u", label: "From unit", type: "select", def: "cm", options: [["mm", "Millimetres"], ["cm", "Centimetres"], ["m", "Metres"], ["km", "Kilometres"], ["in", "Inches"], ["ft", "Feet"], ["yd", "Yards"], ["mi", "Miles"]].map(([v, l]) => ({ v, l })) }],
-    compute: (v) => { const f: Record<string, number> = { mm: 0.001, cm: 0.01, m: 1, km: 1000, in: 0.0254, ft: 0.3048, yd: 0.9144, mi: 1609.344 }; const metres = N(v.x) * f[v.u]; return Object.entries(f).map(([k, x]) => ({ label: k, value: fmt(metres / x, 6) })); },
+    inputs: [{ key: "x", label: "Value", def: "100" }, { key: "u", label: "From unit", type: "select", def: "cm", options: ([["mm", "Millimetres"], ["cm", "Centimetres"], ["m", "Metres"], ["km", "Kilometres"], ["in", "Inches"], ["ft", "Feet"], ["yd", "Yards"], ["mi", "Miles"]] as [string, string][]).map(([v, l]) => ({ v, l })) }],
+    compute: (v) => { const f: Record<string, number> = { mm: 0.001, cm: 0.01, m: 1, km: 1000, in: 0.0254, ft: 0.3048, yd: 0.9144, mi: 1609.344 }; const metres = N(v.x) * f[v.u]!; return Object.entries(f).map(([k, x]) => ({ label: k, value: fmt(metres / x, 6) })); },
     about: "Convert between metric and imperial length units in one step — every result is shown at once so you don't need to convert twice.",
     formula: "Value in metres × (1 ÷ target unit in metres). 1 in = 2.54 cm, 1 ft = 0.3048 m, 1 mi = 1.609344 km.",
     example: "100 cm = 1 m = 39.37 in = 3.28 ft.", tips: ["1 inch is exactly 2.54 cm by definition.", "For height, 5 ft 10 in = 177.8 cm."],
     faqs: [{ q: "How many cm in a foot?", a: "30.48 cm." }, { q: "How many km in a mile?", a: "1.609344 km." }],
   },
+  ...extraCalcs,
 ];
 
-export const bySlug = Object.fromEntries(calcs.map((c) => [c.slug, c]));
+export const bySlug: Record<string, Calc> = Object.fromEntries(calcs.map((c) => [c.slug, c]));
