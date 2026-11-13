@@ -2,7 +2,7 @@ import { compound, emi } from "../calculators";
 import type { Calc } from "../tool-types";
 import { M, N, numberInput, selectInput, textInput, tool } from "./shared";
 
-const bmr = (v: Record<string, string>) => 10 * N(v.kg) + 6.25 * N(v.cm) - 5 * N(v.age) + (v.sex === "m" ? 5 : -161);
+const bmr = (v: Record<string, string>) => 10 * N(v["kg"]) + 6.25 * N(v["cm"]) - 5 * N(v["age"]) + (v["sex"] === "m" ? 5 : -161);
 const sexInput = selectInput("sex", "Sex", "m", [["m", "Male"], ["f", "Female"]]);
 const activityInput = selectInput("act", "Activity level", "1.55", [["1.2", "Sedentary"], ["1.375", "Lightly active"], ["1.55", "Moderately active"], ["1.725", "Very active"], ["1.9", "Extra active"]]);
 

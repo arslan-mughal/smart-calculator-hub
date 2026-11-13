@@ -1,33 +1,8 @@
-/*
- * Tailwind v4 entry: config lives here, with no tailwind.config.js or PostCSS plugin.
- * - Keep every @import in this top block, above @theme and the rest of the file. Install an
- *   npm package before @importing its CSS. Never @import a remote URL (web fonts, CDN CSS): the
- *   build resolves @import from the filesystem. Load those with a <link> in the head() of
- *   src/routes/__root.tsx and name the family in a --font-* token in @theme inline below.
- */
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
-
-/*
- * Design system definition.
- *
- * The design lives in this file: oklch color tokens on the shadcn variables
- * (--background, --foreground, --primary, --secondary, --muted, --accent, ...) plus
- * new tokens as needed, font tokens, and custom styles and animations.
- *
- * The @theme inline block maps CSS custom properties to Tailwind utility
- * classes (e.g. --color-primary -> bg-primary, text-primary).
- *
- * The :root and .dark blocks define the actual color values using oklch.
- * All colors MUST use oklch format.
- *
- * To add a new semantic color:
- * 1. Add the variable to :root (light value) and .dark (dark value)
- * 2. Register it in @theme inline as --color-<name>: var(--<name>)
- */
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
@@ -70,64 +45,67 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  --font-display: "Fraunces", Georgia, serif;
+  --font-display: "Manrope", system-ui, sans-serif;
   --font-sans: "IBM Plex Sans", system-ui, sans-serif;
   --shadow-card: var(--shadow-card);
+  --shadow-card-hover: var(--shadow-card-hover);
 }
 
 :root {
   --radius: 0.75rem;
-  --background: oklch(0.975 0.008 85);
-  --foreground: oklch(0.22 0.02 260);
-  --card: oklch(0.995 0.004 85);
-  --card-foreground: oklch(0.22 0.02 260);
-  --popover: oklch(0.995 0.004 85);
-  --popover-foreground: oklch(0.22 0.02 260);
-  --primary: oklch(0.42 0.09 165);
-  --primary-foreground: oklch(0.98 0.01 85);
-  --secondary: oklch(0.93 0.02 85);
-  --secondary-foreground: oklch(0.22 0.02 260);
-  --muted: oklch(0.94 0.012 85);
-  --muted-foreground: oklch(0.48 0.02 260);
-  --accent: oklch(0.78 0.14 70);
-  --accent-foreground: oklch(0.22 0.02 260);
+  --background: oklch(0.978 0.006 240);
+  --foreground: oklch(0.235 0.035 250);
+  --card: oklch(0.998 0.002 240);
+  --card-foreground: oklch(0.235 0.035 250);
+  --popover: oklch(0.998 0.002 240);
+  --popover-foreground: oklch(0.235 0.035 250);
+  --primary: oklch(0.255 0.055 250);
+  --primary-foreground: oklch(0.985 0.005 175);
+  --secondary: oklch(0.945 0.025 175);
+  --secondary-foreground: oklch(0.255 0.055 250);
+  --muted: oklch(0.955 0.008 240);
+  --muted-foreground: oklch(0.5 0.025 250);
+  --accent: oklch(0.77 0.145 175);
+  --accent-foreground: oklch(0.23 0.05 220);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(0.88 0.015 85);
-  --input: oklch(0.88 0.015 85);
-  --ring: oklch(0.42 0.09 165);
-  --chart-1: oklch(0.42 0.09 165);
-  --chart-2: oklch(0.78 0.14 70);
+  --border: oklch(0.895 0.012 240);
+  --input: oklch(0.87 0.015 240);
+  --ring: oklch(0.66 0.13 175);
+  --chart-1: oklch(0.255 0.055 250);
+  --chart-2: oklch(0.77 0.145 175);
   --chart-3: oklch(0.6 0.1 220);
   --chart-4: oklch(0.7 0.12 30);
   --chart-5: oklch(0.5 0.05 260);
-  --sidebar: oklch(0.975 0.008 85);
-  --sidebar-foreground: oklch(0.22 0.02 260);
-  --sidebar-primary: oklch(0.42 0.09 165);
-  --sidebar-primary-foreground: oklch(0.98 0.01 85);
-  --sidebar-accent: oklch(0.93 0.02 85);
-  --sidebar-accent-foreground: oklch(0.22 0.02 260);
-  --sidebar-border: oklch(0.88 0.015 85);
-  --sidebar-ring: oklch(0.42 0.09 165);
-  --shadow-card: 0 1px 0 oklch(0.88 0.015 85), 0 12px 32px -16px oklch(0.42 0.09 165 / 25%);
+  --sidebar: oklch(0.978 0.006 240);
+  --sidebar-foreground: oklch(0.235 0.035 250);
+  --sidebar-primary: oklch(0.255 0.055 250);
+  --sidebar-primary-foreground: oklch(0.985 0.005 175);
+  --sidebar-accent: oklch(0.945 0.025 175);
+  --sidebar-accent-foreground: oklch(0.255 0.055 250);
+  --sidebar-border: oklch(0.895 0.012 240);
+  --sidebar-ring: oklch(0.66 0.13 175);
+  --shadow-card: 0 1px 2px oklch(0.255 0.055 250 / 4%), 0 8px 24px -18px oklch(0.255 0.055 250 / 30%);
+  --shadow-card-hover: 0 2px 4px oklch(0.255 0.055 250 / 5%), 0 18px 36px -18px oklch(0.255 0.055 250 / 35%);
 }
 
 @layer base {
-  * {
-    border-color: var(--color-border);
-  }
-
-  body {
-    background-color: var(--color-background);
-    color: var(--color-foreground);
-  }
+  * { border-color: var(--color-border); }
+  html { scroll-behavior: smooth; }
+  body { background-color: var(--color-background); color: var(--color-foreground); }
+  h1, h2, h3 { font-family: var(--font-display); letter-spacing: -0.025em; }
+  button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+  button { cursor: pointer; }
+  ::selection { background: var(--color-accent); color: var(--color-accent-foreground); }
 }
 
-@layer base {
-  h1, h2, h3 { font-family: var(--font-display); letter-spacing: -0.01em; }
-}
-.prose-calc h2 { font-size: 1.6rem; margin-top: 2.25rem; margin-bottom: .75rem; }
-.prose-calc h3 { font-size: 1.2rem; margin-top: 1.5rem; margin-bottom: .5rem; }
-.prose-calc p { margin-bottom: 1rem; line-height: 1.75; color: var(--color-foreground); }
-.prose-calc ul { list-style: disc; padding-left: 1.25rem; margin-bottom: 1rem; line-height: 1.75; }
+.section-kicker { font-size: 0.72rem; line-height: 1rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-primary); }
+.section-title { margin-top: 0.5rem; font-family: var(--font-display); font-size: clamp(1.65rem, 3vw, 2.15rem); font-weight: 800; line-height: 1.2; }
+.prose-calc h2 { font-size: 1.75rem; line-height: 1.25; margin-top: 2.5rem; margin-bottom: 0.85rem; font-weight: 800; }
+.prose-calc h3 { font-size: 1.25rem; margin-top: 1.75rem; margin-bottom: 0.6rem; font-weight: 750; }
+.prose-calc p { margin-bottom: 1.1rem; line-height: 1.8; color: var(--color-foreground); }
+.prose-calc ul { list-style: disc; padding-left: 1.35rem; margin-bottom: 1.1rem; line-height: 1.8; }
+.prose-calc li { margin-bottom: 0.35rem; }
 .prose-calc strong { color: var(--color-primary); }
+.prose-calc a { color: var(--color-primary); font-weight: 600; text-decoration: underline; text-decoration-color: var(--color-accent); text-underline-offset: 3px; }
+.prose-calc a:hover { text-decoration-color: var(--color-primary); }
