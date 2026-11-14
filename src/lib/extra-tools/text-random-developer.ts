@@ -1,82 +1,1378 @@
 import type { Calc } from "../tool-types";
-import { M, N, lines, numberInput, seededRandom, selectInput, textArea, textInput, tool, words } from "./shared";
+import {
+  M,
+  N,
+  lines,
+  numberInput,
+  seededRandom,
+  selectInput,
+  textArea,
+  textInput,
+  tool,
+  words,
+} from "./shared";
 
 const sample = "The quick brown fox jumps over the lazy dog.\nThe quick dog jumps again.";
 const wordsText = (v: unknown) => words(v).map((word) => word.toLocaleLowerCase());
-const caseWords = (value: unknown) => String(value ?? "").trim().replace(/([a-z])([A-Z])/g, "$1 $2").split(/[^\p{L}\p{N}]+/u).filter(Boolean);
-const toBase64 = (value: string) => globalThis.btoa(Array.from(new TextEncoder().encode(value), (byte) => String.fromCharCode(byte)).join(""));
-const fromBase64 = (value: string) => new TextDecoder().decode(Uint8Array.from(globalThis.atob(value.replace(/\s/g, "")), (char) => char.charCodeAt(0)));
+const caseWords = (value: unknown) =>
+  String(value ?? "")
+    .trim()
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter(Boolean);
+const toBase64 = (value: string) =>
+  globalThis.btoa(
+    Array.from(new TextEncoder().encode(value), (byte) => String.fromCharCode(byte)).join(""),
+  );
+const fromBase64 = (value: string) =>
+  new TextDecoder().decode(
+    Uint8Array.from(globalThis.atob(value.replace(/\s/g, "")), (char) => char.charCodeAt(0)),
+  );
 const randomSeedInput = numberInput("seed", "Generation seed (change for a new result)", "1");
 
 const textTools: Calc[] = [
-  tool({slug:"word-counter",name:"Word Counter",category:"Text Tools",short:"Count words, characters, sentences, paragraphs and estimated reading time.",popular:true,inputs:[textArea("text","Text",sample)],compute:(v)=>{const text=String(v.text??""),w=words(text);return[{label:"Words",value:M(w.length,0)},{label:"Characters (with spaces)",value:M(text.length,0)},{label:"Characters (without spaces)",value:M(text.replace(/\s/g,"").length,0)},{label:"Sentences",value:M(text.split(/[.!?]+/).filter(x=>x.trim()).length,0)},{label:"Paragraphs",value:M(text.split(/\n\s*\n/).filter(x=>x.trim()).length,0)},{label:"Reading time",value:M(w.length/200,1)+" min"}]},formula:"Words are sequences of letters or numbers. Reading time assumes 200 words per minute.",example:"A 1,000-word article takes about 5 minutes to read at 200 words per minute."}),
-  tool({slug:"character-counter",name:"Character Counter",category:"Text Tools",short:"Count characters, letters, digits, spaces, lines and bytes.",inputs:[textArea("text","Text",sample)],compute:(v)=>{const text=String(v.text??"");return[{label:"Characters",value:M(text.length,0)},{label:"Letters",value:M((text.match(/\p{L}/gu)??[]).length,0)},{label:"Digits",value:M((text.match(/\p{N}/gu)??[]).length,0)},{label:"Spaces",value:M((text.match(/\s/g)??[]).length,0)},{label:"Lines",value:M(lines(text).length,0)},{label:"UTF-8 bytes",value:M(new TextEncoder().encode(text).length,0)}]},formula:"Counts use Unicode characters as represented by your browser; UTF-8 bytes reflect encoded length.",example:"Emoji and accented characters can occupy more than one UTF-8 byte."}),
-  tool({slug:"reading-time-calculator",name:"Reading Time Calculator",category:"Text Tools",short:"Estimate reading and speaking time for any text.",inputs:[textArea("text","Text",sample),numberInput("wpm","Reading speed","200","words/min")],compute:(v)=>{const count=words(v.text).length,wpm=N(v.wpm);return[{label:"Reading time",value:M(count/wpm,2)+" minutes"},{label:"Speaking time (130 wpm)",value:M(count/130,2)+" minutes"},{label:"Word count",value:M(count,0)}]},formula:"Reading time = word count ÷ words per minute.",example:"2,000 words at 200 wpm takes 10 minutes; at 130 wpm it takes about 15.4 minutes to speak."}),
-  tool({slug:"remove-spaces",name:"Remove Spaces",category:"Text Tools",short:"Remove all spaces or collapse repeated whitespace.",inputs:[textArea("text","Text","  Too   many    spaces  in   this text. "),selectInput("mode","Mode","all",[["all","Remove every whitespace character"],["collapse","Collapse repeated spaces"],["extra","Trim and collapse spaces"]])],compute:(v)=>{const text=String(v.text);const out=v.mode==="all"?text.replace(/\s/g,""):v.mode==="collapse"?text.replace(/ {2,}/g," "):text.replace(/\s+/g," ").trim();return[{label:"Result",value:out},{label:"Characters removed",value:M(text.length-out.length,0)}]},formula:"Whitespace is removed or replaced according to the selected mode.",example:"‘Too   many spaces’ becomes ‘Too many spaces’ in collapse mode."}),
-  tool({slug:"remove-line-breaks",name:"Remove Line Breaks",category:"Text Tools",short:"Join multiple lines into one continuous paragraph.",inputs:[textArea("text","Text","First line\nSecond line\nThird line")],compute:(v)=>[{label:"Result",value:String(v.text).replace(/\r?\n/g," ")}],formula:"Each newline is replaced with a single space.",example:"Three separate lines become one flowing line."}),
-  tool({slug:"remove-duplicate-lines",name:"Remove Duplicate Lines",category:"Text Tools",short:"Keep the first occurrence of each line and remove duplicates.",inputs:[textArea("text","Lines","apple\nbanana\napple\norange\nbanana")],compute:(v)=>{const input=lines(v.text),out=[...new Set(input)];return[{label:"Result",value:out.join("\n")},{label:"Duplicates removed",value:M(input.length-out.length,0)}]},formula:"Lines are compared exactly; the first appearance is preserved in its original position.",example:"apple, banana, apple becomes apple, banana."}),
-  tool({slug:"sort-lines",name:"Sort Lines",category:"Text Tools",short:"Sort text lines alphabetically, numerically or by length.",inputs:[textArea("text","Lines","pear\napple\norange\nbanana"),selectInput("mode","Sort order","az",[["az","A to Z"],["za","Z to A"],["num","Numeric ascending"],["len","Shortest first"]])],compute:(v)=>{const a=lines(v.text);a.sort(v.mode==="za"?(x,y)=>y.localeCompare(x):v.mode==="num"?(x,y)=>N(x)-N(y):v.mode==="len"?(x,y)=>x.length-y.length:(x,y)=>x.localeCompare(y));return[{label:"Sorted lines",value:a.join("\n")},{label:"Line count",value:M(a.length,0)}]},formula:"Sort uses locale-aware alphabetical comparison, numeric values or line length.",example:"pear, apple, orange, banana sorts to apple, banana, orange, pear."}),
-  tool({slug:"reverse-text",name:"Reverse Text",category:"Text Tools",short:"Reverse characters, words or the order of lines.",inputs:[textArea("text","Text","hello world"),selectInput("mode","Reverse","chars",[["chars","Characters"],["words","Word order"],["lines","Line order"]])],compute:(v)=>{const text=String(v.text),out=v.mode==="words"?text.split(/(\s+)/).reverse().join(""):v.mode==="lines"?lines(text).reverse().join("\n"):Array.from(text).reverse().join("");return[{label:"Reversed text",value:out}]},formula:"Reverses the selected units while preserving their content.",example:"hello world reversed by characters is dlrow olleh."}),
-  tool({slug:"uppercase-converter",name:"Uppercase Converter",category:"Text Tools",short:"Convert any text to UPPERCASE letters.",inputs:[textArea("text","Text","Make this text uppercase.")],compute:(v)=>[{label:"Uppercase result",value:String(v.text).toLocaleUpperCase()}],formula:"Each lowercase character is converted to its uppercase Unicode equivalent.",example:"Hello world becomes HELLO WORLD."}),
-  tool({slug:"lowercase-converter",name:"Lowercase Converter",category:"Text Tools",short:"Convert any text to lowercase letters.",inputs:[textArea("text","Text","MAKE THIS TEXT LOWERCASE.")],compute:(v)=>[{label:"Lowercase result",value:String(v.text).toLocaleLowerCase()}],formula:"Each uppercase character is converted to its lowercase Unicode equivalent.",example:"HELLO WORLD becomes hello world."}),
-  tool({slug:"title-case-converter",name:"Title Case Converter",category:"Text Tools",short:"Capitalise the first letter of every word.",inputs:[textArea("text","Text","a practical guide to useful online tools")],compute:(v)=>[{label:"Title case result",value:String(v.text).toLocaleLowerCase().replace(/(^|\s|[\-("'“‘])\p{L}/gu,(x)=>x.toLocaleUpperCase())}],formula:"The first letter after a word boundary is capitalised and remaining letters are lowercased.",example:"a practical guide becomes A Practical Guide."}),
-  tool({slug:"sentence-case-converter",name:"Sentence Case Converter",category:"Text Tools",short:"Capitalise the first letter of each sentence.",inputs:[textArea("text","Text","this is one sentence. this is another sentence!")],compute:(v)=>[{label:"Sentence case result",value:String(v.text).toLocaleLowerCase().replace(/(^\s*\p{L}|[.!?]\s+\p{L})/gu,(x)=>x.toLocaleUpperCase())}],formula:"Capitalises letters at the beginning of the text and after sentence-ending punctuation.",example:"this is one. this is two becomes This is one. This is two."}),
-  tool({slug:"camel-case-converter",name:"Camel Case Converter",category:"Text Tools",short:"Convert words to lowerCamelCase for code identifiers.",inputs:[textInput("text","Text","user account name")],compute:(v)=>{const w=caseWords(v.text).map(x=>x.toLocaleLowerCase());return[{label:"camelCase",value:w.map((x,i)=>i?x.charAt(0).toLocaleUpperCase()+x.slice(1):x).join("")}]},formula:"Join lowercased words and capitalise every word after the first.",example:"user account name becomes userAccountName."}),
-  tool({slug:"snake-case-converter",name:"Snake Case Converter",category:"Text Tools",short:"Convert words to lowercase snake_case identifiers.",inputs:[textInput("text","Text","User Account Name")],compute:(v)=>[{label:"snake_case",value:caseWords(v.text).map(x=>x.toLocaleLowerCase()).join("_")}],formula:"Replace separators with underscores and lowercase all words.",example:"User Account Name becomes user_account_name."}),
-  tool({slug:"kebab-case-converter",name:"Kebab Case Converter",category:"Text Tools",short:"Convert words to lowercase kebab-case identifiers.",inputs:[textInput("text","Text","User Account Name")],compute:(v)=>[{label:"kebab-case",value:caseWords(v.text).map(x=>x.toLocaleLowerCase()).join("-")}],formula:"Replace separators with hyphens and lowercase all words.",example:"User Account Name becomes user-account-name."}),
-  tool({slug:"text-repeater",name:"Text Repeater",category:"Text Tools",short:"Repeat text a chosen number of times with a custom separator.",inputs:[textArea("text","Text","Hello"),numberInput("count","Repeat count","5"),textInput("sep","Separator"," ")],compute:(v)=>[{label:"Repeated text",value:Array.from({length:Math.min(1000,Math.max(0,Math.floor(N(v.count))))},()=>String(v.text)).join(String(v.sep))}],formula:"Creates the requested number of copies and joins them with the separator. Limited to 1,000 copies.",example:"Hello repeated 3 times with a space gives Hello Hello Hello."}),
-  tool({slug:"find-and-replace",name:"Find and Replace",category:"Text Tools",short:"Replace every exact occurrence of one text string with another.",inputs:[textArea("text","Text","The old tool and the old method."),textInput("find","Find","old"),textInput("replace","Replace with","new")],compute:(v)=>{const find=String(v.find),text=String(v.text);return[{label:"Result",value:find?text.split(find).join(String(v.replace)):text},{label:"Replacements",value:find?M(text.split(find).length-1,0):"0"}]},formula:"Every exact, case-sensitive match is replaced. Leave Find empty to keep the original text.",example:"Replacing old with new turns ‘the old tool’ into ‘the new tool’."}),
-  tool({slug:"word-frequency-counter",name:"Word Frequency Counter",category:"Text Tools",short:"List the most frequent words in a passage with counts and percentages.",inputs:[textArea("text","Text",sample)],compute:(v)=>{const w=wordsText(v.text),counts=new Map<string,number>();w.forEach(x=>counts.set(x,(counts.get(x)??0)+1));const sorted=[...counts].sort((a,b)=>b[1]-a[1]);return[{label:"Word frequency",value:sorted.map(([word,count])=>`${word}: ${count} (${M(count/w.length*100,1)}%)`).join("\n")},{label:"Unique words",value:M(counts.size,0)},{label:"Total words",value:M(w.length,0)}]},formula:"Frequency = occurrences of a word ÷ total words × 100. Matching ignores letter case.",example:"In ‘the dog and the cat’, ‘the’ appears twice and represents 40% of words."}),
-  tool({slug:"palindrome-checker",name:"Palindrome Checker",category:"Text Tools",short:"Check whether text reads the same forwards and backwards.",inputs:[textInput("text","Text","A man, a plan, a canal: Panama")],compute:(v)=>{const clean=String(v.text).toLocaleLowerCase().replace(/[^\p{L}\p{N}]/gu,""),reverse=Array.from(clean).reverse().join("");return[{label:"Result",value:clean&&clean===reverse?"Yes — it is a palindrome":"No — not a palindrome"},{label:"Normalised text",value:clean}]},formula:"Ignore spaces, punctuation and letter case, then compare the text with its reverse.",example:"A man, a plan, a canal: Panama is a palindrome after normalisation."}),
-  tool({slug:"slug-generator",name:"URL Slug Generator",category:"Text Tools",short:"Create a clean, lowercase URL slug from a title.",inputs:[textInput("text","Page title","10 Useful Tools for Everyday Work!")],compute:(v)=>[{label:"URL slug",value:caseWords(v.text).map(x=>x.toLocaleLowerCase()).join("-")}],formula:"Words are lowercased, punctuation removed and gaps replaced with hyphens.",example:"10 Useful Tools for Everyday Work! becomes 10-useful-tools-for-everyday-work."}),
-  tool({slug:"comma-separator",name:"Comma Separator",category:"Text Tools",short:"Turn separate lines into a comma-separated list.",inputs:[textArea("text","One item per line","apple\nbanana\norange"),selectInput("quote","Item quoting","none",[["none","No quotes"],["single","Single quotes"],["double","Double quotes"]])],compute:(v)=>{const q=v.quote==="single"?"'":v.quote==="double"?'"':"";const a=lines(v.text).map(x=>x.trim()).filter(Boolean).map(x=>q+x+q);return[{label:"Comma-separated result",value:a.join(", ")},{label:"Items",value:M(a.length,0)}]},formula:"Trim each non-empty line, optionally quote it, then join with comma and space.",example:"apple, banana and orange on separate lines become apple, banana, orange."}),
-  tool({slug:"email-extractor",name:"Email Extractor",category:"Text Tools",short:"Extract unique email addresses from any block of text.",inputs:[textArea("text","Text","Contact hello@example.com or support@example.org. Repeat: hello@example.com")],compute:(v)=>{const a=[...new Set(String(v.text).match(/[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}/g)??[])];return[{label:"Email addresses",value:a.join("\n")||"No email addresses found"},{label:"Unique addresses",value:M(a.length,0)}]},formula:"Finds common email-shaped strings and removes exact duplicates.",example:"Two repeated occurrences of hello@example.com produce one output address."}),
-  tool({slug:"url-extractor",name:"URL Extractor",category:"Text Tools",short:"Extract unique HTTP and HTTPS links from text.",inputs:[textArea("text","Text","Visit https://example.com and http://example.org/page. Repeat https://example.com")],compute:(v)=>{const a=[...new Set(String(v.text).match(/https?:\/\/[^\s<>"']+/g)??[])];return[{label:"URLs",value:a.join("\n")||"No URLs found"},{label:"Unique URLs",value:M(a.length,0)}]},formula:"Finds strings beginning with http:// or https:// and removes duplicates.",example:"Repeated links appear only once in the result."}),
-  tool({slug:"remove-html-tags",name:"HTML Tag Remover",category:"Text Tools",short:"Strip HTML tags and decode common entities into plain text.",inputs:[textArea("html","HTML","<h1>Hello</h1><p>A &amp; B</p>")],compute:(v)=>[{label:"Plain text",value:String(v.html).replace(/<[^>]*>/g,"").replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&nbsp;/g," ").trim()}],formula:"Tags are removed and a small set of common HTML entities is decoded.",example:"<p>A &amp; B</p> becomes A & B."}),
-  tool({slug:"whitespace-visualizer",name:"Whitespace Visualizer",category:"Text Tools",short:"Reveal spaces, tabs and line endings with visible symbols.",inputs:[textArea("text","Text","One space  two spaces\tand a tab\nnew line")],compute:(v)=>[{label:"Visible whitespace",value:String(v.text).replace(/ /g,"·").replace(/\t/g,"→\t").replace(/\r/g,"⏎").replace(/\n/g,"↵\n")}],formula:"Spaces become ·, tabs become → and line endings become ↵.",example:"A double space appears as two adjacent · symbols."}),
+  tool({
+    slug: "word-counter",
+    name: "Word Counter",
+    category: "Text Tools",
+    short: "Count words, characters, sentences, paragraphs and estimated reading time.",
+    popular: true,
+    inputs: [textArea("text", "Text", sample)],
+    compute: (v) => {
+      const text = String(v.text ?? ""),
+        w = words(text);
+      return [
+        { label: "Words", value: M(w.length, 0) },
+        { label: "Characters (with spaces)", value: M(text.length, 0) },
+        { label: "Characters (without spaces)", value: M(text.replace(/\s/g, "").length, 0) },
+        { label: "Sentences", value: M(text.split(/[.!?]+/).filter((x) => x.trim()).length, 0) },
+        { label: "Paragraphs", value: M(text.split(/\n\s*\n/).filter((x) => x.trim()).length, 0) },
+        { label: "Reading time", value: M(w.length / 200, 1) + " min" },
+      ];
+    },
+    formula:
+      "Words are sequences of letters or numbers. Reading time assumes 200 words per minute.",
+    example: "A 1,000-word article takes about 5 minutes to read at 200 words per minute.",
+  }),
+  tool({
+    slug: "character-counter",
+    name: "Character Counter",
+    category: "Text Tools",
+    short: "Count characters, letters, digits, spaces, lines and bytes.",
+    inputs: [textArea("text", "Text", sample)],
+    compute: (v) => {
+      const text = String(v.text ?? "");
+      return [
+        { label: "Characters", value: M(text.length, 0) },
+        { label: "Letters", value: M((text.match(/\p{L}/gu) ?? []).length, 0) },
+        { label: "Digits", value: M((text.match(/\p{N}/gu) ?? []).length, 0) },
+        { label: "Spaces", value: M((text.match(/\s/g) ?? []).length, 0) },
+        { label: "Lines", value: M(lines(text).length, 0) },
+        { label: "UTF-8 bytes", value: M(new TextEncoder().encode(text).length, 0) },
+      ];
+    },
+    formula:
+      "Counts use Unicode characters as represented by your browser; UTF-8 bytes reflect encoded length.",
+    example: "Emoji and accented characters can occupy more than one UTF-8 byte.",
+  }),
+  tool({
+    slug: "reading-time-calculator",
+    name: "Reading Time Calculator",
+    category: "Text Tools",
+    short: "Estimate reading and speaking time for any text.",
+    inputs: [
+      textArea("text", "Text", sample),
+      numberInput("wpm", "Reading speed", "200", "words/min"),
+    ],
+    compute: (v) => {
+      const count = words(v.text).length,
+        wpm = N(v.wpm);
+      return [
+        { label: "Reading time", value: M(count / wpm, 2) + " minutes" },
+        { label: "Speaking time (130 wpm)", value: M(count / 130, 2) + " minutes" },
+        { label: "Word count", value: M(count, 0) },
+      ];
+    },
+    formula: "Reading time = word count ÷ words per minute.",
+    example:
+      "2,000 words at 200 wpm takes 10 minutes; at 130 wpm it takes about 15.4 minutes to speak.",
+  }),
+  tool({
+    slug: "remove-spaces",
+    name: "Remove Spaces",
+    category: "Text Tools",
+    short: "Remove all spaces or collapse repeated whitespace.",
+    inputs: [
+      textArea("text", "Text", "  Too   many    spaces  in   this text. "),
+      selectInput("mode", "Mode", "all", [
+        ["all", "Remove every whitespace character"],
+        ["collapse", "Collapse repeated spaces"],
+        ["extra", "Trim and collapse spaces"],
+      ]),
+    ],
+    compute: (v) => {
+      const text = String(v.text);
+      const out =
+        v.mode === "all"
+          ? text.replace(/\s/g, "")
+          : v.mode === "collapse"
+            ? text.replace(/ {2,}/g, " ")
+            : text.replace(/\s+/g, " ").trim();
+      return [
+        { label: "Result", value: out },
+        { label: "Characters removed", value: M(text.length - out.length, 0) },
+      ];
+    },
+    formula: "Whitespace is removed or replaced according to the selected mode.",
+    example: "‘Too   many spaces’ becomes ‘Too many spaces’ in collapse mode.",
+  }),
+  tool({
+    slug: "remove-line-breaks",
+    name: "Remove Line Breaks",
+    category: "Text Tools",
+    short: "Join multiple lines into one continuous paragraph.",
+    inputs: [textArea("text", "Text", "First line\nSecond line\nThird line")],
+    compute: (v) => [{ label: "Result", value: String(v.text).replace(/\r?\n/g, " ") }],
+    formula: "Each newline is replaced with a single space.",
+    example: "Three separate lines become one flowing line.",
+  }),
+  tool({
+    slug: "remove-duplicate-lines",
+    name: "Remove Duplicate Lines",
+    category: "Text Tools",
+    short: "Keep the first occurrence of each line and remove duplicates.",
+    inputs: [textArea("text", "Lines", "apple\nbanana\napple\norange\nbanana")],
+    compute: (v) => {
+      const input = lines(v.text),
+        out = [...new Set(input)];
+      return [
+        { label: "Result", value: out.join("\n") },
+        { label: "Duplicates removed", value: M(input.length - out.length, 0) },
+      ];
+    },
+    formula:
+      "Lines are compared exactly; the first appearance is preserved in its original position.",
+    example: "apple, banana, apple becomes apple, banana.",
+  }),
+  tool({
+    slug: "sort-lines",
+    name: "Sort Lines",
+    category: "Text Tools",
+    short: "Sort text lines alphabetically, numerically or by length.",
+    inputs: [
+      textArea("text", "Lines", "pear\napple\norange\nbanana"),
+      selectInput("mode", "Sort order", "az", [
+        ["az", "A to Z"],
+        ["za", "Z to A"],
+        ["num", "Numeric ascending"],
+        ["len", "Shortest first"],
+      ]),
+    ],
+    compute: (v) => {
+      const a = lines(v.text);
+      a.sort(
+        v.mode === "za"
+          ? (x, y) => y.localeCompare(x)
+          : v.mode === "num"
+            ? (x, y) => N(x) - N(y)
+            : v.mode === "len"
+              ? (x, y) => x.length - y.length
+              : (x, y) => x.localeCompare(y),
+      );
+      return [
+        { label: "Sorted lines", value: a.join("\n") },
+        { label: "Line count", value: M(a.length, 0) },
+      ];
+    },
+    formula: "Sort uses locale-aware alphabetical comparison, numeric values or line length.",
+    example: "pear, apple, orange, banana sorts to apple, banana, orange, pear.",
+  }),
+  tool({
+    slug: "reverse-text",
+    name: "Reverse Text",
+    category: "Text Tools",
+    short: "Reverse characters, words or the order of lines.",
+    inputs: [
+      textArea("text", "Text", "hello world"),
+      selectInput("mode", "Reverse", "chars", [
+        ["chars", "Characters"],
+        ["words", "Word order"],
+        ["lines", "Line order"],
+      ]),
+    ],
+    compute: (v) => {
+      const text = String(v.text),
+        out =
+          v.mode === "words"
+            ? text.split(/(\s+)/).reverse().join("")
+            : v.mode === "lines"
+              ? lines(text).reverse().join("\n")
+              : Array.from(text).reverse().join("");
+      return [{ label: "Reversed text", value: out }];
+    },
+    formula: "Reverses the selected units while preserving their content.",
+    example: "hello world reversed by characters is dlrow olleh.",
+  }),
+  tool({
+    slug: "uppercase-converter",
+    name: "Uppercase Converter",
+    category: "Text Tools",
+    short: "Convert any text to UPPERCASE letters.",
+    inputs: [textArea("text", "Text", "Make this text uppercase.")],
+    compute: (v) => [{ label: "Uppercase result", value: String(v.text).toLocaleUpperCase() }],
+    formula: "Each lowercase character is converted to its uppercase Unicode equivalent.",
+    example: "Hello world becomes HELLO WORLD.",
+  }),
+  tool({
+    slug: "lowercase-converter",
+    name: "Lowercase Converter",
+    category: "Text Tools",
+    short: "Convert any text to lowercase letters.",
+    inputs: [textArea("text", "Text", "MAKE THIS TEXT LOWERCASE.")],
+    compute: (v) => [{ label: "Lowercase result", value: String(v.text).toLocaleLowerCase() }],
+    formula: "Each uppercase character is converted to its lowercase Unicode equivalent.",
+    example: "HELLO WORLD becomes hello world.",
+  }),
+  tool({
+    slug: "title-case-converter",
+    name: "Title Case Converter",
+    category: "Text Tools",
+    short: "Capitalise the first letter of every word.",
+    inputs: [textArea("text", "Text", "a practical guide to useful online tools")],
+    compute: (v) => [
+      {
+        label: "Title case result",
+        value: String(v.text)
+          .toLocaleLowerCase()
+          .replace(/(^|\s|[-("'“‘])\p{L}/gu, (x) => x.toLocaleUpperCase()),
+      },
+    ],
+    formula:
+      "The first letter after a word boundary is capitalised and remaining letters are lowercased.",
+    example: "a practical guide becomes A Practical Guide.",
+  }),
+  tool({
+    slug: "sentence-case-converter",
+    name: "Sentence Case Converter",
+    category: "Text Tools",
+    short: "Capitalise the first letter of each sentence.",
+    inputs: [textArea("text", "Text", "this is one sentence. this is another sentence!")],
+    compute: (v) => [
+      {
+        label: "Sentence case result",
+        value: String(v.text)
+          .toLocaleLowerCase()
+          .replace(/(^\s*\p{L}|[.!?]\s+\p{L})/gu, (x) => x.toLocaleUpperCase()),
+      },
+    ],
+    formula:
+      "Capitalises letters at the beginning of the text and after sentence-ending punctuation.",
+    example: "this is one. this is two becomes This is one. This is two.",
+  }),
+  tool({
+    slug: "camel-case-converter",
+    name: "Camel Case Converter",
+    category: "Text Tools",
+    short: "Convert words to lowerCamelCase for code identifiers.",
+    inputs: [textInput("text", "Text", "user account name")],
+    compute: (v) => {
+      const w = caseWords(v.text).map((x) => x.toLocaleLowerCase());
+      return [
+        {
+          label: "camelCase",
+          value: w.map((x, i) => (i ? x.charAt(0).toLocaleUpperCase() + x.slice(1) : x)).join(""),
+        },
+      ];
+    },
+    formula: "Join lowercased words and capitalise every word after the first.",
+    example: "user account name becomes userAccountName.",
+  }),
+  tool({
+    slug: "snake-case-converter",
+    name: "Snake Case Converter",
+    category: "Text Tools",
+    short: "Convert words to lowercase snake_case identifiers.",
+    inputs: [textInput("text", "Text", "User Account Name")],
+    compute: (v) => [
+      {
+        label: "snake_case",
+        value: caseWords(v.text)
+          .map((x) => x.toLocaleLowerCase())
+          .join("_"),
+      },
+    ],
+    formula: "Replace separators with underscores and lowercase all words.",
+    example: "User Account Name becomes user_account_name.",
+  }),
+  tool({
+    slug: "kebab-case-converter",
+    name: "Kebab Case Converter",
+    category: "Text Tools",
+    short: "Convert words to lowercase kebab-case identifiers.",
+    inputs: [textInput("text", "Text", "User Account Name")],
+    compute: (v) => [
+      {
+        label: "kebab-case",
+        value: caseWords(v.text)
+          .map((x) => x.toLocaleLowerCase())
+          .join("-"),
+      },
+    ],
+    formula: "Replace separators with hyphens and lowercase all words.",
+    example: "User Account Name becomes user-account-name.",
+  }),
+  tool({
+    slug: "text-repeater",
+    name: "Text Repeater",
+    category: "Text Tools",
+    short: "Repeat text a chosen number of times with a custom separator.",
+    inputs: [
+      textArea("text", "Text", "Hello"),
+      numberInput("count", "Repeat count", "5"),
+      textInput("sep", "Separator", " "),
+    ],
+    compute: (v) => [
+      {
+        label: "Repeated text",
+        value: Array.from({ length: Math.min(1000, Math.max(0, Math.floor(N(v.count)))) }, () =>
+          String(v.text),
+        ).join(String(v.sep)),
+      },
+    ],
+    formula:
+      "Creates the requested number of copies and joins them with the separator. Limited to 1,000 copies.",
+    example: "Hello repeated 3 times with a space gives Hello Hello Hello.",
+  }),
+  tool({
+    slug: "find-and-replace",
+    name: "Find and Replace",
+    category: "Text Tools",
+    short: "Replace every exact occurrence of one text string with another.",
+    inputs: [
+      textArea("text", "Text", "The old tool and the old method."),
+      textInput("find", "Find", "old"),
+      textInput("replace", "Replace with", "new"),
+    ],
+    compute: (v) => {
+      const find = String(v.find),
+        text = String(v.text);
+      return [
+        { label: "Result", value: find ? text.split(find).join(String(v.replace)) : text },
+        { label: "Replacements", value: find ? M(text.split(find).length - 1, 0) : "0" },
+      ];
+    },
+    formula:
+      "Every exact, case-sensitive match is replaced. Leave Find empty to keep the original text.",
+    example: "Replacing old with new turns ‘the old tool’ into ‘the new tool’.",
+  }),
+  tool({
+    slug: "word-frequency-counter",
+    name: "Word Frequency Counter",
+    category: "Text Tools",
+    short: "List the most frequent words in a passage with counts and percentages.",
+    inputs: [textArea("text", "Text", sample)],
+    compute: (v) => {
+      const w = wordsText(v.text),
+        counts = new Map<string, number>();
+      w.forEach((x) => counts.set(x, (counts.get(x) ?? 0) + 1));
+      const sorted = [...counts].sort((a, b) => b[1] - a[1]);
+      return [
+        {
+          label: "Word frequency",
+          value: sorted
+            .map(([word, count]) => `${word}: ${count} (${M((count / w.length) * 100, 1)}%)`)
+            .join("\n"),
+        },
+        { label: "Unique words", value: M(counts.size, 0) },
+        { label: "Total words", value: M(w.length, 0) },
+      ];
+    },
+    formula: "Frequency = occurrences of a word ÷ total words × 100. Matching ignores letter case.",
+    example: "In ‘the dog and the cat’, ‘the’ appears twice and represents 40% of words.",
+  }),
+  tool({
+    slug: "palindrome-checker",
+    name: "Palindrome Checker",
+    category: "Text Tools",
+    short: "Check whether text reads the same forwards and backwards.",
+    inputs: [textInput("text", "Text", "A man, a plan, a canal: Panama")],
+    compute: (v) => {
+      const clean = String(v.text)
+          .toLocaleLowerCase()
+          .replace(/[^\p{L}\p{N}]/gu, ""),
+        reverse = Array.from(clean).reverse().join("");
+      return [
+        {
+          label: "Result",
+          value: clean && clean === reverse ? "Yes — it is a palindrome" : "No — not a palindrome",
+        },
+        { label: "Normalised text", value: clean },
+      ];
+    },
+    formula: "Ignore spaces, punctuation and letter case, then compare the text with its reverse.",
+    example: "A man, a plan, a canal: Panama is a palindrome after normalisation.",
+  }),
+  tool({
+    slug: "slug-generator",
+    name: "URL Slug Generator",
+    category: "Text Tools",
+    short: "Create a clean, lowercase URL slug from a title.",
+    inputs: [textInput("text", "Page title", "10 Useful Tools for Everyday Work!")],
+    compute: (v) => [
+      {
+        label: "URL slug",
+        value: caseWords(v.text)
+          .map((x) => x.toLocaleLowerCase())
+          .join("-"),
+      },
+    ],
+    formula: "Words are lowercased, punctuation removed and gaps replaced with hyphens.",
+    example: "10 Useful Tools for Everyday Work! becomes 10-useful-tools-for-everyday-work.",
+  }),
+  tool({
+    slug: "comma-separator",
+    name: "Comma Separator",
+    category: "Text Tools",
+    short: "Turn separate lines into a comma-separated list.",
+    inputs: [
+      textArea("text", "One item per line", "apple\nbanana\norange"),
+      selectInput("quote", "Item quoting", "none", [
+        ["none", "No quotes"],
+        ["single", "Single quotes"],
+        ["double", "Double quotes"],
+      ]),
+    ],
+    compute: (v) => {
+      const q = v.quote === "single" ? "'" : v.quote === "double" ? '"' : "";
+      const a = lines(v.text)
+        .map((x) => x.trim())
+        .filter(Boolean)
+        .map((x) => q + x + q);
+      return [
+        { label: "Comma-separated result", value: a.join(", ") },
+        { label: "Items", value: M(a.length, 0) },
+      ];
+    },
+    formula: "Trim each non-empty line, optionally quote it, then join with comma and space.",
+    example: "apple, banana and orange on separate lines become apple, banana, orange.",
+  }),
+  tool({
+    slug: "email-extractor",
+    name: "Email Extractor",
+    category: "Text Tools",
+    short: "Extract unique email addresses from any block of text.",
+    inputs: [
+      textArea(
+        "text",
+        "Text",
+        "Contact hello@example.com or support@example.org. Repeat: hello@example.com",
+      ),
+    ],
+    compute: (v) => {
+      const a = [...new Set(String(v.text).match(/[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}/g) ?? [])];
+      return [
+        { label: "Email addresses", value: a.join("\n") || "No email addresses found" },
+        { label: "Unique addresses", value: M(a.length, 0) },
+      ];
+    },
+    formula: "Finds common email-shaped strings and removes exact duplicates.",
+    example: "Two repeated occurrences of hello@example.com produce one output address.",
+  }),
+  tool({
+    slug: "url-extractor",
+    name: "URL Extractor",
+    category: "Text Tools",
+    short: "Extract unique HTTP and HTTPS links from text.",
+    inputs: [
+      textArea(
+        "text",
+        "Text",
+        "Visit https://example.com and http://example.org/page. Repeat https://example.com",
+      ),
+    ],
+    compute: (v) => {
+      const a = [...new Set(String(v.text).match(/https?:\/\/[^\s<>"']+/g) ?? [])];
+      return [
+        { label: "URLs", value: a.join("\n") || "No URLs found" },
+        { label: "Unique URLs", value: M(a.length, 0) },
+      ];
+    },
+    formula: "Finds strings beginning with http:// or https:// and removes duplicates.",
+    example: "Repeated links appear only once in the result.",
+  }),
+  tool({
+    slug: "remove-html-tags",
+    name: "HTML Tag Remover",
+    category: "Text Tools",
+    short: "Strip HTML tags and decode common entities into plain text.",
+    inputs: [textArea("html", "HTML", "<h1>Hello</h1><p>A &amp; B</p>")],
+    compute: (v) => [
+      {
+        label: "Plain text",
+        value: String(v.html)
+          .replace(/<[^>]*>/g, "")
+          .replace(/&amp;/g, "&")
+          .replace(/&lt;/g, "<")
+          .replace(/&gt;/g, ">")
+          .replace(/&quot;/g, '"')
+          .replace(/&#39;/g, "'")
+          .replace(/&nbsp;/g, " ")
+          .trim(),
+      },
+    ],
+    formula: "Tags are removed and a small set of common HTML entities is decoded.",
+    example: "<p>A &amp; B</p> becomes A & B.",
+  }),
+  tool({
+    slug: "whitespace-visualizer",
+    name: "Whitespace Visualizer",
+    category: "Text Tools",
+    short: "Reveal spaces, tabs and line endings with visible symbols.",
+    inputs: [textArea("text", "Text", "One space  two spaces\tand a tab\nnew line")],
+    compute: (v) => [
+      {
+        label: "Visible whitespace",
+        value: String(v.text)
+          .replace(/ /g, "·")
+          .replace(/\t/g, "→\t")
+          .replace(/\r/g, "⏎")
+          .replace(/\n/g, "↵\n"),
+      },
+    ],
+    formula: "Spaces become ·, tabs become → and line endings become ↵.",
+    example: "A double space appears as two adjacent · symbols.",
+  }),
 ];
 
 const randomTools: Calc[] = [
-  tool({slug:"random-picker",name:"Random Picker",category:"Random Tools",short:"Pick one random item from your own list.",popular:true,inputs:[textArea("items","One item per line","Ada\nGrace\nLinus\nMargaret"),randomSeedInput],compute:(v)=>{const a=lines(v.items).map(x=>x.trim()).filter(Boolean),random=seededRandom(N(v.seed));return[{label:"Picked item",value:a.length?a[Math.floor(random()*a.length)]!:"Add some items"},{label:"Items",value:M(a.length,0)}]},formula:"Each non-empty line has an equal chance. Change the seed to generate a fresh choice.",example:"Ada, Grace, Linus and Margaret each have a 25% chance when four names are entered."}),
-  tool({slug:"random-name-picker",name:"Random Name Picker",category:"Random Tools",short:"Choose a random name for classrooms, giveaways and team selections.",inputs:[textArea("items","One name per line","Ada\nGrace\nLinus\nMargaret"),randomSeedInput],compute:(v)=>{const a=lines(v.items).map(x=>x.trim()).filter(Boolean),random=seededRandom(N(v.seed));return[{label:"Selected name",value:a.length?a[Math.floor(random()*a.length)]!:"Add some names"},{label:"Names remaining in list",value:M(a.length,0)}]},formula:"A uniformly distributed random index selects one non-empty line. Change the seed for another draw.",example:"Ten entered names each have a 10% chance of selection."}),
-  tool({slug:"random-number-generator",name:"Random Number Generator",category:"Random Tools",short:"Generate random integers within an inclusive range.",inputs:[numberInput("min","Minimum","1"),numberInput("max","Maximum","100"),numberInput("count","How many","6"),randomSeedInput],compute:(v)=>{const min=Math.ceil(N(v.min)),max=Math.floor(N(v.max)),count=Math.min(100,Math.max(1,Math.floor(N(v.count)))),random=seededRandom(N(v.seed));return[{label:"Random numbers",value:Array.from({length:count},()=>Math.floor(random()*(max-min+1))+min).join(", ")},{label:"Range",value:`${min} to ${max}, inclusive`}]},formula:"Each integer in the inclusive range has equal probability. Change the seed for a new set.",example:"A range of 1–100 can produce any integer from 1 through 100."}),
-  tool({slug:"password-generator",name:"Password Generator",category:"Random Tools",short:"Generate a strong password with configurable length and characters.",popular:true,inputs:[numberInput("length","Password length","20"),selectInput("chars","Characters","all",[["all","Letters, numbers and symbols"],["alnum","Letters and numbers"],["letters","Letters only"]]),randomSeedInput],compute:(v)=>{const sets={all:"ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^&*_-+=",alnum:"ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789",letters:"ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"},chars=sets[String(v.chars) as keyof typeof sets]??sets.all,len=Math.min(128,Math.max(4,Math.floor(N(v.length)))),random=seededRandom(N(v.seed));return[{label:"Generated password",value:Array.from({length:len},()=>chars[Math.floor(random()*chars.length)]).join("")},{label:"Length",value:M(len,0)},{label:"Character pool",value:M(chars.length,0)}]},formula:"Each position is selected from the chosen character pool. Use a password manager to store unique passwords.",example:"A 20-character password using letters, numbers and symbols provides a large search space."}),
-  tool({slug:"uuid-generator",name:"UUID Generator",category:"Random Tools",short:"Generate RFC 4122-style version 4 unique identifiers.",inputs:[numberInput("count","How many UUIDs","3"),randomSeedInput],compute:(v)=>{const random=seededRandom(N(v.seed)),one=()=>"xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g,c=>{const r=Math.floor(random()*16),n=c==="x"?r:(r&3)|8;return n.toString(16)});return[{label:"UUIDs",value:Array.from({length:Math.min(20,Math.max(1,N(v.count)))},one).join("\n")}]},formula:"UUID v4 contains 122 random bits with fixed version and variant bits. Change the seed for new identifiers.",example:"A UUID has the form xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx."}),
-  tool({slug:"dice-roller",name:"Dice Roller",category:"Random Tools",short:"Roll multiple dice and see each result plus the total.",inputs:[numberInput("count","Number of dice","2"),numberInput("sides","Sides per die","6"),randomSeedInput],compute:(v)=>{const random=seededRandom(N(v.seed)),rolls=Array.from({length:Math.min(100,Math.max(1,N(v.count)))},()=>Math.floor(random()*Math.max(2,N(v.sides)))+1);return[{label:"Dice results",value:rolls.join(", ")},{label:"Total",value:M(rolls.reduce((s,x)=>s+x,0),0)},{label:"Average per die",value:M(rolls.reduce((s,x)=>s+x,0)/rolls.length,2)}]},formula:"Each face from 1 to the chosen number of sides has equal probability.",example:"Two six-sided dice produce a total from 2 to 12."}),
-  tool({slug:"coin-flip",name:"Coin Flip",category:"Random Tools",short:"Flip one or more virtual coins with an even heads-or-tails chance.",inputs:[numberInput("count","Number of coins","1"),randomSeedInput],compute:(v)=>{const random=seededRandom(N(v.seed)),flips=Array.from({length:Math.min(100,Math.max(1,N(v.count)))},()=>random()<.5?"Heads":"Tails");return[{label:"Result",value:flips.join(", ")},{label:"Heads",value:M(flips.filter(x=>x==="Heads").length,0)},{label:"Tails",value:M(flips.filter(x=>x==="Tails").length,0)}]},formula:"Each independent flip has a 50% probability of heads and 50% of tails.",example:"A fair coin can produce several heads in a row without changing the next flip's odds."}),
-  tool({slug:"yes-no-generator",name:"Yes or No Generator",category:"Random Tools",short:"Get a random yes-or-no answer for a light-hearted decision.",inputs:[randomSeedInput],compute:(v)=>[{label:"Answer",value:seededRandom(N(v.seed))()<.5?"Yes":"No"}],formula:"Yes and No each have a 50% chance. Change the seed for another answer.",example:"Use it for casual choices, not medical, legal or financial decisions."}),
-  tool({slug:"random-letter-generator",name:"Random Letter Generator",category:"Random Tools",short:"Generate random letters from the English alphabet.",inputs:[numberInput("count","Number of letters","5"),randomSeedInput],compute:(v)=>{const random=seededRandom(N(v.seed));return[{label:"Letters",value:Array.from({length:Math.min(100,Math.max(1,N(v.count)))},()=>String.fromCharCode(65+Math.floor(random()*26))).join(", ")}]},formula:"Every letter A through Z has an equal 1/26 probability.",example:"Use random letters for games, prompts and classroom activities."}),
-  tool({slug:"random-color-generator",name:"Random Color Generator",category:"Random Tools",short:"Generate random HEX and RGB colour values.",inputs:[numberInput("count","Number of colours","5"),randomSeedInput],compute:(v)=>{const random=seededRandom(N(v.seed));const colors=Array.from({length:Math.min(20,Math.max(1,N(v.count)))},()=>{const rgb=Array.from({length:3},()=>Math.floor(random()*256));return`#${rgb.map(x=>x.toString(16).padStart(2,"0")).join("").toUpperCase()} · rgb(${rgb.join(", ")})`});return[{label:"Colours",value:colors.join("\n")}]},formula:"Red, green and blue channels are each selected from 0 to 255.",example:"RGB(255, 255, 255) is white and RGB(0, 0, 0) is black."}),
-  tool({slug:"team-generator",name:"Random Team Generator",category:"Random Tools",short:"Shuffle a list of names into evenly sized random teams.",inputs:[textArea("names","One name per line","Ada\nGrace\nLinus\nMargaret\nAlan\nKatherine"),numberInput("teams","Number of teams","2"),randomSeedInput],compute:(v)=>{const a=lines(v.names).map(x=>x.trim()).filter(Boolean),random=seededRandom(N(v.seed));a.sort(()=>random()-.5);const count=Math.min(a.length||1,Math.max(1,Math.floor(N(v.teams))));return Array.from({length:count},(_,i)=>({label:`Team ${i+1}`,value:a.filter((_,j)=>j%count===i).join(", ")||"—"}))},formula:"Shuffle the names, then deal them one at a time across the requested teams.",example:"Six names across two teams produce two teams of three."}),
-  tool({slug:"list-shuffler",name:"List Shuffler",category:"Random Tools",short:"Put list items into a random order.",inputs:[textArea("items","One item per line","Apple\nBanana\nOrange\nPear"),randomSeedInput],compute:(v)=>{const a=lines(v.items).map(x=>x.trim()).filter(Boolean),random=seededRandom(N(v.seed));for(let i=a.length-1;i>0;i--){const j=Math.floor(random()*(i+1));[a[i],a[j]]=[a[j]!,a[i]!]}return[{label:"Shuffled list",value:a.join("\n")}]},formula:"Fisher–Yates shuffle swaps each item with a random earlier or equal position.",example:"Every ordering has an equal chance when the shuffle is correctly applied."}),
+  tool({
+    slug: "random-picker",
+    name: "Random Picker",
+    category: "Random Tools",
+    short: "Pick one random item from your own list.",
+    popular: true,
+    inputs: [
+      textArea("items", "One item per line", "Ada\nGrace\nLinus\nMargaret"),
+      randomSeedInput,
+    ],
+    compute: (v) => {
+      const a = lines(v.items)
+          .map((x) => x.trim())
+          .filter(Boolean),
+        random = seededRandom(N(v.seed));
+      return [
+        {
+          label: "Picked item",
+          value: a.length ? a[Math.floor(random() * a.length)]! : "Add some items",
+        },
+        { label: "Items", value: M(a.length, 0) },
+      ];
+    },
+    formula: "Each non-empty line has an equal chance. Change the seed to generate a fresh choice.",
+    example: "Ada, Grace, Linus and Margaret each have a 25% chance when four names are entered.",
+  }),
+  tool({
+    slug: "random-name-picker",
+    name: "Random Name Picker",
+    category: "Random Tools",
+    short: "Choose a random name for classrooms, giveaways and team selections.",
+    inputs: [
+      textArea("items", "One name per line", "Ada\nGrace\nLinus\nMargaret"),
+      randomSeedInput,
+    ],
+    compute: (v) => {
+      const a = lines(v.items)
+          .map((x) => x.trim())
+          .filter(Boolean),
+        random = seededRandom(N(v.seed));
+      return [
+        {
+          label: "Selected name",
+          value: a.length ? a[Math.floor(random() * a.length)]! : "Add some names",
+        },
+        { label: "Names remaining in list", value: M(a.length, 0) },
+      ];
+    },
+    formula:
+      "A uniformly distributed random index selects one non-empty line. Change the seed for another draw.",
+    example: "Ten entered names each have a 10% chance of selection.",
+  }),
+  tool({
+    slug: "random-number-generator",
+    name: "Random Number Generator",
+    category: "Random Tools",
+    short: "Generate random integers within an inclusive range.",
+    inputs: [
+      numberInput("min", "Minimum", "1"),
+      numberInput("max", "Maximum", "100"),
+      numberInput("count", "How many", "6"),
+      randomSeedInput,
+    ],
+    compute: (v) => {
+      const min = Math.ceil(N(v.min)),
+        max = Math.floor(N(v.max)),
+        count = Math.min(100, Math.max(1, Math.floor(N(v.count)))),
+        random = seededRandom(N(v.seed));
+      return [
+        {
+          label: "Random numbers",
+          value: Array.from(
+            { length: count },
+            () => Math.floor(random() * (max - min + 1)) + min,
+          ).join(", "),
+        },
+        { label: "Range", value: `${min} to ${max}, inclusive` },
+      ];
+    },
+    formula:
+      "Each integer in the inclusive range has equal probability. Change the seed for a new set.",
+    example: "A range of 1–100 can produce any integer from 1 through 100.",
+  }),
+  tool({
+    slug: "password-generator",
+    name: "Password Generator",
+    category: "Random Tools",
+    short: "Generate a strong password with configurable length and characters.",
+    popular: true,
+    inputs: [
+      numberInput("length", "Password length", "20"),
+      selectInput("chars", "Characters", "all", [
+        ["all", "Letters, numbers and symbols"],
+        ["alnum", "Letters and numbers"],
+        ["letters", "Letters only"],
+      ]),
+      randomSeedInput,
+    ],
+    compute: (v) => {
+      const sets = {
+          all: "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^&*_-+=",
+          alnum: "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789",
+          letters: "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz",
+        },
+        chars = sets[String(v.chars) as keyof typeof sets] ?? sets.all,
+        len = Math.min(128, Math.max(4, Math.floor(N(v.length)))),
+        random = seededRandom(N(v.seed));
+      return [
+        {
+          label: "Generated password",
+          value: Array.from({ length: len }, () => chars[Math.floor(random() * chars.length)]).join(
+            "",
+          ),
+        },
+        { label: "Length", value: M(len, 0) },
+        { label: "Character pool", value: M(chars.length, 0) },
+      ];
+    },
+    formula:
+      "Each position is selected from the chosen character pool. Use a password manager to store unique passwords.",
+    example:
+      "A 20-character password using letters, numbers and symbols provides a large search space.",
+  }),
+  tool({
+    slug: "uuid-generator",
+    name: "UUID Generator",
+    category: "Random Tools",
+    short: "Generate RFC 4122-style version 4 unique identifiers.",
+    inputs: [numberInput("count", "How many UUIDs", "3"), randomSeedInput],
+    compute: (v) => {
+      const random = seededRandom(N(v.seed)),
+        one = () =>
+          "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+            const r = Math.floor(random() * 16),
+              n = c === "x" ? r : (r & 3) | 8;
+            return n.toString(16);
+          });
+      return [
+        {
+          label: "UUIDs",
+          value: Array.from({ length: Math.min(20, Math.max(1, N(v.count))) }, one).join("\n"),
+        },
+      ];
+    },
+    formula:
+      "UUID v4 contains 122 random bits with fixed version and variant bits. Change the seed for new identifiers.",
+    example: "A UUID has the form xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx.",
+  }),
+  tool({
+    slug: "dice-roller",
+    name: "Dice Roller",
+    category: "Random Tools",
+    short: "Roll multiple dice and see each result plus the total.",
+    inputs: [
+      numberInput("count", "Number of dice", "2"),
+      numberInput("sides", "Sides per die", "6"),
+      randomSeedInput,
+    ],
+    compute: (v) => {
+      const random = seededRandom(N(v.seed)),
+        rolls = Array.from(
+          { length: Math.min(100, Math.max(1, N(v.count))) },
+          () => Math.floor(random() * Math.max(2, N(v.sides))) + 1,
+        );
+      return [
+        { label: "Dice results", value: rolls.join(", ") },
+        {
+          label: "Total",
+          value: M(
+            rolls.reduce((s, x) => s + x, 0),
+            0,
+          ),
+        },
+        { label: "Average per die", value: M(rolls.reduce((s, x) => s + x, 0) / rolls.length, 2) },
+      ];
+    },
+    formula: "Each face from 1 to the chosen number of sides has equal probability.",
+    example: "Two six-sided dice produce a total from 2 to 12.",
+  }),
+  tool({
+    slug: "coin-flip",
+    name: "Coin Flip",
+    category: "Random Tools",
+    short: "Flip one or more virtual coins with an even heads-or-tails chance.",
+    inputs: [numberInput("count", "Number of coins", "1"), randomSeedInput],
+    compute: (v) => {
+      const random = seededRandom(N(v.seed)),
+        flips = Array.from({ length: Math.min(100, Math.max(1, N(v.count))) }, () =>
+          random() < 0.5 ? "Heads" : "Tails",
+        );
+      return [
+        { label: "Result", value: flips.join(", ") },
+        { label: "Heads", value: M(flips.filter((x) => x === "Heads").length, 0) },
+        { label: "Tails", value: M(flips.filter((x) => x === "Tails").length, 0) },
+      ];
+    },
+    formula: "Each independent flip has a 50% probability of heads and 50% of tails.",
+    example:
+      "A fair coin can produce several heads in a row without changing the next flip's odds.",
+  }),
+  tool({
+    slug: "yes-no-generator",
+    name: "Yes or No Generator",
+    category: "Random Tools",
+    short: "Get a random yes-or-no answer for a light-hearted decision.",
+    inputs: [randomSeedInput],
+    compute: (v) => [{ label: "Answer", value: seededRandom(N(v.seed))() < 0.5 ? "Yes" : "No" }],
+    formula: "Yes and No each have a 50% chance. Change the seed for another answer.",
+    example: "Use it for casual choices, not medical, legal or financial decisions.",
+  }),
+  tool({
+    slug: "random-letter-generator",
+    name: "Random Letter Generator",
+    category: "Random Tools",
+    short: "Generate random letters from the English alphabet.",
+    inputs: [numberInput("count", "Number of letters", "5"), randomSeedInput],
+    compute: (v) => {
+      const random = seededRandom(N(v.seed));
+      return [
+        {
+          label: "Letters",
+          value: Array.from({ length: Math.min(100, Math.max(1, N(v.count))) }, () =>
+            String.fromCharCode(65 + Math.floor(random() * 26)),
+          ).join(", "),
+        },
+      ];
+    },
+    formula: "Every letter A through Z has an equal 1/26 probability.",
+    example: "Use random letters for games, prompts and classroom activities.",
+  }),
+  tool({
+    slug: "random-color-generator",
+    name: "Random Color Generator",
+    category: "Random Tools",
+    short: "Generate random HEX and RGB colour values.",
+    inputs: [numberInput("count", "Number of colours", "5"), randomSeedInput],
+    compute: (v) => {
+      const random = seededRandom(N(v.seed));
+      const colors = Array.from({ length: Math.min(20, Math.max(1, N(v.count))) }, () => {
+        const rgb = Array.from({ length: 3 }, () => Math.floor(random() * 256));
+        return `#${rgb
+          .map((x) => x.toString(16).padStart(2, "0"))
+          .join("")
+          .toUpperCase()} · rgb(${rgb.join(", ")})`;
+      });
+      return [{ label: "Colours", value: colors.join("\n") }];
+    },
+    formula: "Red, green and blue channels are each selected from 0 to 255.",
+    example: "RGB(255, 255, 255) is white and RGB(0, 0, 0) is black.",
+  }),
+  tool({
+    slug: "team-generator",
+    name: "Random Team Generator",
+    category: "Random Tools",
+    short: "Shuffle a list of names into evenly sized random teams.",
+    inputs: [
+      textArea("names", "One name per line", "Ada\nGrace\nLinus\nMargaret\nAlan\nKatherine"),
+      numberInput("teams", "Number of teams", "2"),
+      randomSeedInput,
+    ],
+    compute: (v) => {
+      const a = lines(v.names)
+          .map((x) => x.trim())
+          .filter(Boolean),
+        random = seededRandom(N(v.seed));
+      a.sort(() => random() - 0.5);
+      const count = Math.min(a.length || 1, Math.max(1, Math.floor(N(v.teams))));
+      return Array.from({ length: count }, (_, i) => ({
+        label: `Team ${i + 1}`,
+        value: a.filter((_, j) => j % count === i).join(", ") || "—",
+      }));
+    },
+    formula: "Shuffle the names, then deal them one at a time across the requested teams.",
+    example: "Six names across two teams produce two teams of three.",
+  }),
+  tool({
+    slug: "list-shuffler",
+    name: "List Shuffler",
+    category: "Random Tools",
+    short: "Put list items into a random order.",
+    inputs: [
+      textArea("items", "One item per line", "Apple\nBanana\nOrange\nPear"),
+      randomSeedInput,
+    ],
+    compute: (v) => {
+      const a = lines(v.items)
+          .map((x) => x.trim())
+          .filter(Boolean),
+        random = seededRandom(N(v.seed));
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(random() * (i + 1));
+        [a[i], a[j]] = [a[j]!, a[i]!];
+      }
+      return [{ label: "Shuffled list", value: a.join("\n") }];
+    },
+    formula: "Fisher–Yates shuffle swaps each item with a random earlier or equal position.",
+    example: "Every ordering has an equal chance when the shuffle is correctly applied.",
+  }),
 ];
 
 const developerTools: Calc[] = [
-  tool({slug:"url-encoder",name:"URL Encoder",category:"Web & Developer",short:"Percent-encode text for safe use inside a URL component.",inputs:[textArea("text","Text","https://example.com/search?q=hello world&lang=en")],compute:(v)=>[{label:"Encoded URL component",value:encodeURIComponent(String(v.text))}],formula:"Reserved characters and non-ASCII bytes are represented as percent-encoded UTF-8.",example:"hello world becomes hello%20world; an ampersand becomes %26."}),
-  tool({slug:"url-decoder",name:"URL Decoder",category:"Web & Developer",short:"Decode percent-encoded URL text back into readable characters.",inputs:[textArea("text","Encoded text","hello%20world%20%26%20tools")],compute:(v)=>{try{return[{label:"Decoded text",value:decodeURIComponent(String(v.text))}]}catch{return[{label:"Decoded text",value:"Invalid percent encoding"}]}},formula:"Percent-encoded UTF-8 sequences are converted back to their original characters.",example:"hello%20world%20%26%20tools becomes hello world & tools."}),
-  tool({slug:"base64-encoder",name:"Base64 Encoder",category:"Web & Developer",short:"Encode Unicode text as Base64 directly in your browser.",inputs:[textArea("text","Text","Hello, CalcHub! 👋")],compute:(v)=>[{label:"Base64",value:toBase64(String(v.text))}],formula:"UTF-8 bytes are grouped into 6-bit chunks and represented by the Base64 alphabet.",example:"Hello becomes SGVsbG8=."}),
-  tool({slug:"base64-decoder",name:"Base64 Decoder",category:"Web & Developer",short:"Decode Base64 text back into readable Unicode text.",inputs:[textArea("text","Base64","SGVsbG8sIENhbGNIdWIh")],compute:(v)=>{try{return[{label:"Decoded text",value:fromBase64(String(v.text))}]}catch{return[{label:"Decoded text",value:"Invalid Base64 input"}]}},formula:"Base64 characters are decoded into bytes, then interpreted as UTF-8 text.",example:"SGVsbG8= decodes to Hello."}),
-  tool({slug:"json-formatter",name:"JSON Formatter",category:"Web & Developer",short:"Validate and pretty-print JSON with consistent indentation.",popular:true,inputs:[textArea("json","JSON",'{"name":"CalcHub","tools":150,"free":true}'),numberInput("spaces","Indentation spaces","2")],compute:(v)=>{try{const parsed=JSON.parse(String(v.json));return[{label:"Formatted JSON",value:JSON.stringify(parsed,null,Math.min(10,Math.max(0,N(v.spaces))))},{label:"Status",value:"Valid JSON"}]}catch(error){return[{label:"Status",value:"Invalid JSON"},{label:"Error",value:error instanceof Error?error.message:"Unable to parse input"}]}},formula:"Parse the JSON first; if valid, serialise it with the chosen indentation.",example:'{"free":true} formats across multiple lines with "free": true.'}),
-  tool({slug:"json-minifier",name:"JSON Minifier",category:"Web & Developer",short:"Remove unnecessary whitespace from valid JSON.",inputs:[textArea("json","JSON",'{\n  "name": "CalcHub",\n  "free": true\n}')],compute:(v)=>{try{const input=String(v.json),out=JSON.stringify(JSON.parse(input));return[{label:"Minified JSON",value:out},{label:"Bytes saved",value:M(new TextEncoder().encode(input).length-new TextEncoder().encode(out).length,0)}]}catch(error){return[{label:"Invalid JSON",value:error instanceof Error?error.message:"Unable to parse input"}]}},formula:"Parse and serialise without indentation, preserving the data while removing formatting whitespace.",example:'{ "free": true } becomes {"free":true}.'}),
-  tool({slug:"html-encoder",name:"HTML Encoder",category:"Web & Developer",short:"Escape HTML special characters for safe display as text.",inputs:[textArea("text","Text",'<p class="note">Tom & Jerry</p>')],compute:(v)=>[{label:"Encoded HTML",value:String(v.text).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;")}],formula:"&, <, >, double quotes and single quotes are replaced with HTML entities.",example:"<p> becomes &lt;p&gt;."}),
-  tool({slug:"html-decoder",name:"HTML Decoder",category:"Web & Developer",short:"Decode common named and numeric HTML entities.",inputs:[textArea("text","Encoded HTML","&lt;p&gt;Tom &amp; Jerry&#39;s tools&lt;/p&gt;")],compute:(v)=>[{label:"Decoded text",value:String(v.text).replace(/&#(\d+);/g,(_,n)=>String.fromCodePoint(Number(n))).replace(/&#x([\da-f]+);/gi,(_,n)=>String.fromCodePoint(parseInt(n,16))).replace(/&quot;/g,'"').replace(/&#39;|&apos;/g,"'").replace(/&gt;/g,">").replace(/&lt;/g,"<").replace(/&nbsp;/g," ").replace(/&amp;/g,"&")}],formula:"Common named entities and decimal or hexadecimal numeric entities become their literal characters.",example:"&lt;p&gt; becomes <p> and &amp; becomes &."}),
-  tool({slug:"text-to-binary-converter",name:"Text to Binary Converter",category:"Web & Developer",short:"Convert text into space-separated 8-bit UTF-8 binary bytes.",inputs:[textArea("text","Text","Hi!")],compute:(v)=>[{label:"Binary bytes",value:Array.from(new TextEncoder().encode(String(v.text)),x=>x.toString(2).padStart(8,"0")).join(" ")}],formula:"Each UTF-8 byte is written as an eight-digit base-2 number.",example:"Hi! becomes 01001000 01101001 00100001."}),
-  tool({slug:"binary-to-text-converter",name:"Binary to Text Converter",category:"Web & Developer",short:"Convert space-separated binary bytes into UTF-8 text.",inputs:[textArea("binary","Binary bytes","01001000 01101001 00100001")],compute:(v)=>{try{const parts=String(v.binary).trim().split(/\s+/).filter(Boolean);if(parts.some(x=>!/^[01]{1,8}$/.test(x)))throw new Error();return[{label:"Decoded text",value:new TextDecoder().decode(Uint8Array.from(parts,x=>parseInt(x,2)))}]}catch{return[{label:"Decoded text",value:"Enter valid groups of 1–8 binary digits"}]}},formula:"Each binary group becomes one byte; the bytes are decoded as UTF-8.",example:"01001000 01101001 00100001 becomes Hi!."}),
-  tool({slug:"text-to-hex-converter",name:"Text to Hex Converter",category:"Web & Developer",short:"Convert text into hexadecimal UTF-8 bytes.",inputs:[textArea("text","Text","CalcHub")],compute:(v)=>[{label:"Hexadecimal bytes",value:Array.from(new TextEncoder().encode(String(v.text)),x=>x.toString(16).padStart(2,"0")).join(" ")}],formula:"Each UTF-8 byte is written as a two-digit base-16 value.",example:"ABC becomes 41 42 43."}),
-  tool({slug:"hex-to-text-converter",name:"Hex to Text Converter",category:"Web & Developer",short:"Convert hexadecimal bytes into UTF-8 text.",inputs:[textArea("hex","Hex bytes","43 61 6c 63 48 75 62")],compute:(v)=>{try{const parts=String(v.hex).trim().split(/\s+/).filter(Boolean);if(parts.some(x=>!/^[0-9a-f]{1,2}$/i.test(x)))throw new Error();return[{label:"Decoded text",value:new TextDecoder().decode(Uint8Array.from(parts,x=>parseInt(x,16)))}]}catch{return[{label:"Decoded text",value:"Enter valid one- or two-digit hex bytes"}]}},formula:"Each hexadecimal group becomes one byte; the bytes are decoded as UTF-8.",example:"41 42 43 becomes ABC."}),
-  tool({slug:"jwt-decoder",name:"JWT Decoder",category:"Web & Developer",short:"Inspect a JSON Web Token's header and payload without verifying its signature.",inputs:[textArea("jwt","JWT","eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkFkYSIsImlhdCI6MTUxNjIzOTAyMn0.signature")],compute:(v)=>{try{const decode=(part:string)=>fromBase64(part.replace(/-/g,"+").replace(/_/g,"/").padEnd(Math.ceil(part.length/4)*4,"="));const parts=String(v.jwt).trim().split(".");if(parts.length!==3)throw new Error("A JWT needs three sections");return[{label:"Header",value:JSON.stringify(JSON.parse(decode(parts[0]!)),null,2)},{label:"Payload",value:JSON.stringify(JSON.parse(decode(parts[1]!)),null,2)},{label:"Signature status",value:"Not verified — decoding is not authentication"}]}catch(error){return[{label:"Invalid JWT",value:error instanceof Error?error.message:"Unable to decode token"}]}},formula:"Decode the first two Base64URL sections as JSON. The signature is deliberately not trusted or verified.",example:"A typical JWT header contains alg and typ; the payload contains claims such as sub and iat."}),
-  tool({slug:"regex-tester",name:"Regex Tester",category:"Web & Developer",short:"Test a JavaScript regular expression and list every match.",inputs:[textInput("pattern","Regular expression","\\b\\w+@\\w+\\.\\w+\\b"),textInput("flags","Flags","gi"),textArea("text","Test text","Email hello@example.com and support@example.org.")],compute:(v)=>{try{const re=new RegExp(String(v.pattern),String(v.flags).includes("g")?String(v.flags):String(v.flags)+"g"),matches=Array.from(String(v.text).matchAll(re));return[{label:"Matches",value:matches.map((m,i)=>`${i+1}: ${m[0]} at index ${m.index}`).join("\n")||"No matches"},{label:"Match count",value:M(matches.length,0)}]}catch(error){return[{label:"Invalid expression",value:error instanceof Error?error.message:"Unable to compile regex"}]}},formula:"Compiles a JavaScript RegExp and returns global matches with zero-based character positions.",example:"The default expression finds two email-shaped matches."}),
-  tool({slug:"css-minifier",name:"CSS Minifier",category:"Web & Developer",short:"Remove comments and unnecessary whitespace from straightforward CSS.",inputs:[textArea("css","CSS","/* demo */\n.card {\n  color: red;\n  margin: 0 auto;\n}")],compute:(v)=>{const input=String(v.css),out=input.replace(/\/\*[\s\S]*?\*\//g,"").replace(/\s+/g," ").replace(/\s*([{}:;,>])\s*/g,"$1").replace(/;}/g,"}").trim();return[{label:"Minified CSS",value:out},{label:"Characters saved",value:M(input.length-out.length,0)}]},formula:"Removes comments, collapses whitespace and trims around common CSS punctuation. Review complex CSS before production use.",example:".card { color: red; } becomes .card{color:red}."}),
+  tool({
+    slug: "url-encoder",
+    name: "URL Encoder",
+    category: "Web & Developer",
+    short: "Percent-encode text for safe use inside a URL component.",
+    inputs: [textArea("text", "Text", "https://example.com/search?q=hello world&lang=en")],
+    compute: (v) => [{ label: "Encoded URL component", value: encodeURIComponent(String(v.text)) }],
+    formula: "Reserved characters and non-ASCII bytes are represented as percent-encoded UTF-8.",
+    example: "hello world becomes hello%20world; an ampersand becomes %26.",
+  }),
+  tool({
+    slug: "url-decoder",
+    name: "URL Decoder",
+    category: "Web & Developer",
+    short: "Decode percent-encoded URL text back into readable characters.",
+    inputs: [textArea("text", "Encoded text", "hello%20world%20%26%20tools")],
+    compute: (v) => {
+      try {
+        return [{ label: "Decoded text", value: decodeURIComponent(String(v.text)) }];
+      } catch {
+        return [{ label: "Decoded text", value: "Invalid percent encoding" }];
+      }
+    },
+    formula: "Percent-encoded UTF-8 sequences are converted back to their original characters.",
+    example: "hello%20world%20%26%20tools becomes hello world & tools.",
+  }),
+  tool({
+    slug: "base64-encoder",
+    name: "Base64 Encoder",
+    category: "Web & Developer",
+    short: "Encode Unicode text as Base64 directly in your browser.",
+    inputs: [textArea("text", "Text", "Hello, CalcHub! 👋")],
+    compute: (v) => [{ label: "Base64", value: toBase64(String(v.text)) }],
+    formula: "UTF-8 bytes are grouped into 6-bit chunks and represented by the Base64 alphabet.",
+    example: "Hello becomes SGVsbG8=.",
+  }),
+  tool({
+    slug: "base64-decoder",
+    name: "Base64 Decoder",
+    category: "Web & Developer",
+    short: "Decode Base64 text back into readable Unicode text.",
+    inputs: [textArea("text", "Base64", "SGVsbG8sIENhbGNIdWIh")],
+    compute: (v) => {
+      try {
+        return [{ label: "Decoded text", value: fromBase64(String(v.text)) }];
+      } catch {
+        return [{ label: "Decoded text", value: "Invalid Base64 input" }];
+      }
+    },
+    formula: "Base64 characters are decoded into bytes, then interpreted as UTF-8 text.",
+    example: "SGVsbG8= decodes to Hello.",
+  }),
+  tool({
+    slug: "json-formatter",
+    name: "JSON Formatter",
+    category: "Web & Developer",
+    short: "Validate and pretty-print JSON with consistent indentation.",
+    popular: true,
+    inputs: [
+      textArea("json", "JSON", '{"name":"CalcHub","tools":150,"free":true}'),
+      numberInput("spaces", "Indentation spaces", "2"),
+    ],
+    compute: (v) => {
+      try {
+        const parsed = JSON.parse(String(v.json));
+        return [
+          {
+            label: "Formatted JSON",
+            value: JSON.stringify(parsed, null, Math.min(10, Math.max(0, N(v.spaces)))),
+          },
+          { label: "Status", value: "Valid JSON" },
+        ];
+      } catch (error) {
+        return [
+          { label: "Status", value: "Invalid JSON" },
+          {
+            label: "Error",
+            value: error instanceof Error ? error.message : "Unable to parse input",
+          },
+        ];
+      }
+    },
+    formula: "Parse the JSON first; if valid, serialise it with the chosen indentation.",
+    example: '{"free":true} formats across multiple lines with "free": true.',
+  }),
+  tool({
+    slug: "json-minifier",
+    name: "JSON Minifier",
+    category: "Web & Developer",
+    short: "Remove unnecessary whitespace from valid JSON.",
+    inputs: [textArea("json", "JSON", '{\n  "name": "CalcHub",\n  "free": true\n}')],
+    compute: (v) => {
+      try {
+        const input = String(v.json),
+          out = JSON.stringify(JSON.parse(input));
+        return [
+          { label: "Minified JSON", value: out },
+          {
+            label: "Bytes saved",
+            value: M(
+              new TextEncoder().encode(input).length - new TextEncoder().encode(out).length,
+              0,
+            ),
+          },
+        ];
+      } catch (error) {
+        return [
+          {
+            label: "Invalid JSON",
+            value: error instanceof Error ? error.message : "Unable to parse input",
+          },
+        ];
+      }
+    },
+    formula:
+      "Parse and serialise without indentation, preserving the data while removing formatting whitespace.",
+    example: '{ "free": true } becomes {"free":true}.',
+  }),
+  tool({
+    slug: "html-encoder",
+    name: "HTML Encoder",
+    category: "Web & Developer",
+    short: "Escape HTML special characters for safe display as text.",
+    inputs: [textArea("text", "Text", '<p class="note">Tom & Jerry</p>')],
+    compute: (v) => [
+      {
+        label: "Encoded HTML",
+        value: String(v.text)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;"),
+      },
+    ],
+    formula: "&, <, >, double quotes and single quotes are replaced with HTML entities.",
+    example: "<p> becomes &lt;p&gt;.",
+  }),
+  tool({
+    slug: "html-decoder",
+    name: "HTML Decoder",
+    category: "Web & Developer",
+    short: "Decode common named and numeric HTML entities.",
+    inputs: [textArea("text", "Encoded HTML", "&lt;p&gt;Tom &amp; Jerry&#39;s tools&lt;/p&gt;")],
+    compute: (v) => [
+      {
+        label: "Decoded text",
+        value: String(v.text)
+          .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)))
+          .replace(/&#x([\da-f]+);/gi, (_, n) => String.fromCodePoint(parseInt(n, 16)))
+          .replace(/&quot;/g, '"')
+          .replace(/&#39;|&apos;/g, "'")
+          .replace(/&gt;/g, ">")
+          .replace(/&lt;/g, "<")
+          .replace(/&nbsp;/g, " ")
+          .replace(/&amp;/g, "&"),
+      },
+    ],
+    formula:
+      "Common named entities and decimal or hexadecimal numeric entities become their literal characters.",
+    example: "&lt;p&gt; becomes <p> and &amp; becomes &.",
+  }),
+  tool({
+    slug: "text-to-binary-converter",
+    name: "Text to Binary Converter",
+    category: "Web & Developer",
+    short: "Convert text into space-separated 8-bit UTF-8 binary bytes.",
+    inputs: [textArea("text", "Text", "Hi!")],
+    compute: (v) => [
+      {
+        label: "Binary bytes",
+        value: Array.from(new TextEncoder().encode(String(v.text)), (x) =>
+          x.toString(2).padStart(8, "0"),
+        ).join(" "),
+      },
+    ],
+    formula: "Each UTF-8 byte is written as an eight-digit base-2 number.",
+    example: "Hi! becomes 01001000 01101001 00100001.",
+  }),
+  tool({
+    slug: "binary-to-text-converter",
+    name: "Binary to Text Converter",
+    category: "Web & Developer",
+    short: "Convert space-separated binary bytes into UTF-8 text.",
+    inputs: [textArea("binary", "Binary bytes", "01001000 01101001 00100001")],
+    compute: (v) => {
+      try {
+        const parts = String(v.binary).trim().split(/\s+/).filter(Boolean);
+        if (parts.some((x) => !/^[01]{1,8}$/.test(x))) throw new Error();
+        return [
+          {
+            label: "Decoded text",
+            value: new TextDecoder().decode(Uint8Array.from(parts, (x) => parseInt(x, 2))),
+          },
+        ];
+      } catch {
+        return [{ label: "Decoded text", value: "Enter valid groups of 1–8 binary digits" }];
+      }
+    },
+    formula: "Each binary group becomes one byte; the bytes are decoded as UTF-8.",
+    example: "01001000 01101001 00100001 becomes Hi!.",
+  }),
+  tool({
+    slug: "text-to-hex-converter",
+    name: "Text to Hex Converter",
+    category: "Web & Developer",
+    short: "Convert text into hexadecimal UTF-8 bytes.",
+    inputs: [textArea("text", "Text", "CalcHub")],
+    compute: (v) => [
+      {
+        label: "Hexadecimal bytes",
+        value: Array.from(new TextEncoder().encode(String(v.text)), (x) =>
+          x.toString(16).padStart(2, "0"),
+        ).join(" "),
+      },
+    ],
+    formula: "Each UTF-8 byte is written as a two-digit base-16 value.",
+    example: "ABC becomes 41 42 43.",
+  }),
+  tool({
+    slug: "hex-to-text-converter",
+    name: "Hex to Text Converter",
+    category: "Web & Developer",
+    short: "Convert hexadecimal bytes into UTF-8 text.",
+    inputs: [textArea("hex", "Hex bytes", "43 61 6c 63 48 75 62")],
+    compute: (v) => {
+      try {
+        const parts = String(v.hex).trim().split(/\s+/).filter(Boolean);
+        if (parts.some((x) => !/^[0-9a-f]{1,2}$/i.test(x))) throw new Error();
+        return [
+          {
+            label: "Decoded text",
+            value: new TextDecoder().decode(Uint8Array.from(parts, (x) => parseInt(x, 16))),
+          },
+        ];
+      } catch {
+        return [{ label: "Decoded text", value: "Enter valid one- or two-digit hex bytes" }];
+      }
+    },
+    formula: "Each hexadecimal group becomes one byte; the bytes are decoded as UTF-8.",
+    example: "41 42 43 becomes ABC.",
+  }),
+  tool({
+    slug: "jwt-decoder",
+    name: "JWT Decoder",
+    category: "Web & Developer",
+    short: "Inspect a JSON Web Token's header and payload without verifying its signature.",
+    inputs: [
+      textArea(
+        "jwt",
+        "JWT",
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkFkYSIsImlhdCI6MTUxNjIzOTAyMn0.signature",
+      ),
+    ],
+    compute: (v) => {
+      try {
+        const decode = (part: string) =>
+          fromBase64(
+            part
+              .replace(/-/g, "+")
+              .replace(/_/g, "/")
+              .padEnd(Math.ceil(part.length / 4) * 4, "="),
+          );
+        const parts = String(v.jwt).trim().split(".");
+        if (parts.length !== 3) throw new Error("A JWT needs three sections");
+        return [
+          { label: "Header", value: JSON.stringify(JSON.parse(decode(parts[0]!)), null, 2) },
+          { label: "Payload", value: JSON.stringify(JSON.parse(decode(parts[1]!)), null, 2) },
+          { label: "Signature status", value: "Not verified — decoding is not authentication" },
+        ];
+      } catch (error) {
+        return [
+          {
+            label: "Invalid JWT",
+            value: error instanceof Error ? error.message : "Unable to decode token",
+          },
+        ];
+      }
+    },
+    formula:
+      "Decode the first two Base64URL sections as JSON. The signature is deliberately not trusted or verified.",
+    example:
+      "A typical JWT header contains alg and typ; the payload contains claims such as sub and iat.",
+  }),
+  tool({
+    slug: "regex-tester",
+    name: "Regex Tester",
+    category: "Web & Developer",
+    short: "Test a JavaScript regular expression and list every match.",
+    inputs: [
+      textInput("pattern", "Regular expression", "\\b\\w+@\\w+\\.\\w+\\b"),
+      textInput("flags", "Flags", "gi"),
+      textArea("text", "Test text", "Email hello@example.com and support@example.org."),
+    ],
+    compute: (v) => {
+      try {
+        const re = new RegExp(
+            String(v.pattern),
+            String(v.flags).includes("g") ? String(v.flags) : String(v.flags) + "g",
+          ),
+          matches = Array.from(String(v.text).matchAll(re));
+        return [
+          {
+            label: "Matches",
+            value:
+              matches.map((m, i) => `${i + 1}: ${m[0]} at index ${m.index}`).join("\n") ||
+              "No matches",
+          },
+          { label: "Match count", value: M(matches.length, 0) },
+        ];
+      } catch (error) {
+        return [
+          {
+            label: "Invalid expression",
+            value: error instanceof Error ? error.message : "Unable to compile regex",
+          },
+        ];
+      }
+    },
+    formula:
+      "Compiles a JavaScript RegExp and returns global matches with zero-based character positions.",
+    example: "The default expression finds two email-shaped matches.",
+  }),
+  tool({
+    slug: "css-minifier",
+    name: "CSS Minifier",
+    category: "Web & Developer",
+    short: "Remove comments and unnecessary whitespace from straightforward CSS.",
+    inputs: [textArea("css", "CSS", "/* demo */\n.card {\n  color: red;\n  margin: 0 auto;\n}")],
+    compute: (v) => {
+      const input = String(v.css),
+        out = input
+          .replace(/\/\*[\s\S]*?\*\//g, "")
+          .replace(/\s+/g, " ")
+          .replace(/\s*([{}:;,>])\s*/g, "$1")
+          .replace(/;}/g, "}")
+          .trim();
+      return [
+        { label: "Minified CSS", value: out },
+        { label: "Characters saved", value: M(input.length - out.length, 0) },
+      ];
+    },
+    formula:
+      "Removes comments, collapses whitespace and trims around common CSS punctuation. Review complex CSS before production use.",
+    example: ".card { color: red; } becomes .card{color:red}.",
+  }),
 ];
 
 const dateEducationTools: Calc[] = [
-  tool({slug:"test-score-calculator",name:"Test Score Calculator",category:"Education",short:"Convert correct answers into a test percentage and letter grade.",inputs:[numberInput("correct","Correct answers","42"),numberInput("total","Total questions","50")],compute:(v)=>{const p=N(v.correct)/N(v.total)*100,letter=p>=90?"A":p>=80?"B":p>=70?"C":p>=60?"D":"F";return[{label:"Score",value:M(p,2)+"%"},{label:"Letter grade (US scale)",value:letter},{label:"Incorrect answers",value:M(N(v.total)-N(v.correct),0)}]},formula:"Percentage = correct answers ÷ total questions × 100.",example:"42 correct out of 50 is 84%, or a B on the displayed scale."}),
-  tool({slug:"weighted-average-calculator",name:"Weighted Average Calculator",category:"Education",short:"Calculate an average where each value has a different weight.",inputs:[textInput("values","Values","80, 90, 75"),textInput("weights","Weights","20, 30, 50")],compute:(v)=>{const values=String(v.values).split(/[\s,;]+/).map(Number).filter(Number.isFinite),weights=String(v.weights).split(/[\s,;]+/).map(Number).filter(Number.isFinite),total=values.reduce((s,x,i)=>s+x*(weights[i]??0),0),weight=values.reduce((s,_,i)=>s+(weights[i]??0),0);return[{label:"Weighted average",value:M(total/weight,4)},{label:"Total weight",value:M(weight,4)}]},formula:"Weighted average = Σ(value × weight) ÷ Σweights.",example:"80, 90 and 75 with weights 20, 30 and 50 give a weighted average of 80.5."}),
-  tool({slug:"week-number-calculator",name:"Week Number Calculator",category:"Date & Time",short:"Find the ISO 8601 week number for any date.",inputs:[{key:"date",label:"Date",type:"date",def:"2026-11-12"}],compute:(v)=>{const d=new Date(String(v.date)+"T00:00:00Z");d.setUTCDate(d.getUTCDate()+4-(d.getUTCDay()||7));const year=d.getUTCFullYear(),start=new Date(Date.UTC(year,0,1)),week=Math.ceil(((d.getTime()-start.getTime())/86400000+1)/7);return[{label:"ISO week number",value:M(week,0)},{label:"ISO week year",value:M(year,0)},{label:"Week label",value:`${year}-W${String(week).padStart(2,"0")}`}]},formula:"ISO weeks start Monday. Week 1 is the week containing the year's first Thursday.",example:"12 November 2026 falls in ISO week 46."}),
-  tool({slug:"countdown-calculator",name:"Countdown Calculator",category:"Date & Time",short:"Count the days, hours and minutes between two dates.",inputs:[{key:"from",label:"From date",type:"date",def:"today"},{key:"to",label:"Target date",type:"date",def:"2026-12-31"}],compute:(v)=>{const ms=new Date(String(v.to)+"T00:00:00").getTime()-new Date(String(v.from)+"T00:00:00").getTime(),days=Math.floor(ms/86400000);return[{label:"Days remaining",value:M(days,0)},{label:"Weeks remaining",value:M(days/7,2)},{label:"Hours",value:M(days*24,0)},{label:"Minutes",value:M(days*1440,0)}]},formula:"Target date minus start date, converted from milliseconds into days.",example:"A target 30 days away equals 720 hours or 43,200 minutes."}),
-  tool({slug:"business-days-calculator",name:"Business Days Calculator",category:"Date & Time",short:"Count Monday-to-Friday days between two dates.",inputs:[{key:"from",label:"Start date",type:"date",def:"2026-11-02"},{key:"to",label:"End date",type:"date",def:"2026-11-30"}],compute:(v)=>{const start=new Date(String(v.from)+"T00:00:00"),end=new Date(String(v.to)+"T00:00:00"),sign=end>=start?1:-1;let count=0;for(let d=new Date(start);sign>0?d<end:d>end;d.setDate(d.getDate()+sign)){const day=d.getDay();if(day!==0&&day!==6)count++}return[{label:"Business days",value:M(count*sign,0)},{label:"Calendar days",value:M(Math.round((end.getTime()-start.getTime())/86400000),0)}]},formula:"Step through dates and exclude Saturdays and Sundays. Public holidays are not removed.",example:"A Monday-to-Monday interval contains five weekdays when the end date is excluded."}),
-  tool({slug:"work-hours-calculator",name:"Work Hours Calculator",category:"Date & Time",short:"Calculate paid hours from start time, end time and an unpaid break.",inputs:[textInput("start","Start time","09:00"),textInput("end","End time","17:30"),numberInput("break","Unpaid break","30","minutes")],compute:(v)=>{const parse=(x:string)=>{const[h,m]=x.split(":").map(Number);return(h??0)*60+(m??0)},minutes=parse(String(v.end))-parse(String(v.start))-N(v.break);return[{label:"Paid hours",value:`${Math.floor(minutes/60)}h ${Math.abs(minutes%60)}m`},{label:"Decimal hours",value:M(minutes/60,4)},{label:"Paid minutes",value:M(minutes,0)}]},formula:"Paid minutes = end − start − unpaid break. Decimal hours = paid minutes ÷ 60.",example:"09:00–17:30 with a 30-minute break gives 8 paid hours."}),
-  tool({slug:"unix-timestamp-converter",name:"Unix Timestamp Converter",category:"Date & Time",short:"Convert a Unix timestamp in seconds to readable UTC and local dates.",inputs:[textInput("timestamp","Unix timestamp (seconds)","1767225600")],compute:(v)=>{const d=new Date(N(v.timestamp)*1000);return[{label:"UTC date and time",value:Number.isNaN(d.getTime())?"Invalid timestamp":d.toISOString()},{label:"Local date and time",value:Number.isNaN(d.getTime())?"Invalid timestamp":d.toLocaleString("en-US")},{label:"Milliseconds timestamp",value:M(d.getTime(),0)}]},formula:"Unix seconds count from 1 January 1970 00:00:00 UTC. JavaScript Date uses milliseconds.",example:"1767225600 represents 1 January 2026 00:00:00 UTC."}),
+  tool({
+    slug: "test-score-calculator",
+    name: "Test Score Calculator",
+    category: "Education",
+    short: "Convert correct answers into a test percentage and letter grade.",
+    inputs: [
+      numberInput("correct", "Correct answers", "42"),
+      numberInput("total", "Total questions", "50"),
+    ],
+    compute: (v) => {
+      const p = (N(v.correct) / N(v.total)) * 100,
+        letter = p >= 90 ? "A" : p >= 80 ? "B" : p >= 70 ? "C" : p >= 60 ? "D" : "F";
+      return [
+        { label: "Score", value: M(p, 2) + "%" },
+        { label: "Letter grade (US scale)", value: letter },
+        { label: "Incorrect answers", value: M(N(v.total) - N(v.correct), 0) },
+      ];
+    },
+    formula: "Percentage = correct answers ÷ total questions × 100.",
+    example: "42 correct out of 50 is 84%, or a B on the displayed scale.",
+  }),
+  tool({
+    slug: "weighted-average-calculator",
+    name: "Weighted Average Calculator",
+    category: "Education",
+    short: "Calculate an average where each value has a different weight.",
+    inputs: [
+      textInput("values", "Values", "80, 90, 75"),
+      textInput("weights", "Weights", "20, 30, 50"),
+    ],
+    compute: (v) => {
+      const values = String(v.values)
+          .split(/[\s,;]+/)
+          .map(Number)
+          .filter(Number.isFinite),
+        weights = String(v.weights)
+          .split(/[\s,;]+/)
+          .map(Number)
+          .filter(Number.isFinite),
+        total = values.reduce((s, x, i) => s + x * (weights[i] ?? 0), 0),
+        weight = values.reduce((s, _, i) => s + (weights[i] ?? 0), 0);
+      return [
+        { label: "Weighted average", value: M(total / weight, 4) },
+        { label: "Total weight", value: M(weight, 4) },
+      ];
+    },
+    formula: "Weighted average = Σ(value × weight) ÷ Σweights.",
+    example: "80, 90 and 75 with weights 20, 30 and 50 give a weighted average of 80.5.",
+  }),
+  tool({
+    slug: "week-number-calculator",
+    name: "Week Number Calculator",
+    category: "Date & Time",
+    short: "Find the ISO 8601 week number for any date.",
+    inputs: [{ key: "date", label: "Date", type: "date", def: "2026-11-12" }],
+    compute: (v) => {
+      const d = new Date(String(v.date) + "T00:00:00Z");
+      d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+      const year = d.getUTCFullYear(),
+        start = new Date(Date.UTC(year, 0, 1)),
+        week = Math.ceil(((d.getTime() - start.getTime()) / 86400000 + 1) / 7);
+      return [
+        { label: "ISO week number", value: M(week, 0) },
+        { label: "ISO week year", value: M(year, 0) },
+        { label: "Week label", value: `${year}-W${String(week).padStart(2, "0")}` },
+      ];
+    },
+    formula: "ISO weeks start Monday. Week 1 is the week containing the year's first Thursday.",
+    example: "12 November 2026 falls in ISO week 46.",
+  }),
+  tool({
+    slug: "countdown-calculator",
+    name: "Countdown Calculator",
+    category: "Date & Time",
+    short: "Count the days, hours and minutes between two dates.",
+    inputs: [
+      { key: "from", label: "From date", type: "date", def: "today" },
+      { key: "to", label: "Target date", type: "date", def: "2026-12-31" },
+    ],
+    compute: (v) => {
+      const ms =
+          new Date(String(v.to) + "T00:00:00").getTime() -
+          new Date(String(v.from) + "T00:00:00").getTime(),
+        days = Math.floor(ms / 86400000);
+      return [
+        { label: "Days remaining", value: M(days, 0) },
+        { label: "Weeks remaining", value: M(days / 7, 2) },
+        { label: "Hours", value: M(days * 24, 0) },
+        { label: "Minutes", value: M(days * 1440, 0) },
+      ];
+    },
+    formula: "Target date minus start date, converted from milliseconds into days.",
+    example: "A target 30 days away equals 720 hours or 43,200 minutes.",
+  }),
+  tool({
+    slug: "business-days-calculator",
+    name: "Business Days Calculator",
+    category: "Date & Time",
+    short: "Count Monday-to-Friday days between two dates.",
+    inputs: [
+      { key: "from", label: "Start date", type: "date", def: "2026-11-02" },
+      { key: "to", label: "End date", type: "date", def: "2026-11-30" },
+    ],
+    compute: (v) => {
+      const start = new Date(String(v.from) + "T00:00:00"),
+        end = new Date(String(v.to) + "T00:00:00"),
+        sign = end >= start ? 1 : -1;
+      let count = 0;
+      for (let d = new Date(start); sign > 0 ? d < end : d > end; d.setDate(d.getDate() + sign)) {
+        const day = d.getDay();
+        if (day !== 0 && day !== 6) count++;
+      }
+      return [
+        { label: "Business days", value: M(count * sign, 0) },
+        {
+          label: "Calendar days",
+          value: M(Math.round((end.getTime() - start.getTime()) / 86400000), 0),
+        },
+      ];
+    },
+    formula:
+      "Step through dates and exclude Saturdays and Sundays. Public holidays are not removed.",
+    example: "A Monday-to-Monday interval contains five weekdays when the end date is excluded.",
+  }),
+  tool({
+    slug: "work-hours-calculator",
+    name: "Work Hours Calculator",
+    category: "Date & Time",
+    short: "Calculate paid hours from start time, end time and an unpaid break.",
+    inputs: [
+      textInput("start", "Start time", "09:00"),
+      textInput("end", "End time", "17:30"),
+      numberInput("break", "Unpaid break", "30", "minutes"),
+    ],
+    compute: (v) => {
+      const parse = (x: string) => {
+          const [h, m] = x.split(":").map(Number);
+          return (h ?? 0) * 60 + (m ?? 0);
+        },
+        minutes = parse(String(v.end)) - parse(String(v.start)) - N(v.break);
+      return [
+        { label: "Paid hours", value: `${Math.floor(minutes / 60)}h ${Math.abs(minutes % 60)}m` },
+        { label: "Decimal hours", value: M(minutes / 60, 4) },
+        { label: "Paid minutes", value: M(minutes, 0) },
+      ];
+    },
+    formula: "Paid minutes = end − start − unpaid break. Decimal hours = paid minutes ÷ 60.",
+    example: "09:00–17:30 with a 30-minute break gives 8 paid hours.",
+  }),
+  tool({
+    slug: "unix-timestamp-converter",
+    name: "Unix Timestamp Converter",
+    category: "Date & Time",
+    short: "Convert a Unix timestamp in seconds to readable UTC and local dates.",
+    inputs: [textInput("timestamp", "Unix timestamp (seconds)", "1767225600")],
+    compute: (v) => {
+      const d = new Date(N(v.timestamp) * 1000);
+      return [
+        {
+          label: "UTC date and time",
+          value: Number.isNaN(d.getTime()) ? "Invalid timestamp" : d.toISOString(),
+        },
+        {
+          label: "Local date and time",
+          value: Number.isNaN(d.getTime()) ? "Invalid timestamp" : d.toLocaleString("en-US"),
+        },
+        { label: "Milliseconds timestamp", value: M(d.getTime(), 0) },
+      ];
+    },
+    formula:
+      "Unix seconds count from 1 January 1970 00:00:00 UTC. JavaScript Date uses milliseconds.",
+    example: "1767225600 represents 1 January 2026 00:00:00 UTC.",
+  }),
 ];
 
-export const textRandomDeveloperTools: Calc[] = [...textTools, ...randomTools, ...developerTools, ...dateEducationTools];
+export const textRandomDeveloperTools: Calc[] = [
+  ...textTools,
+  ...randomTools,
+  ...developerTools,
+  ...dateEducationTools,
+];

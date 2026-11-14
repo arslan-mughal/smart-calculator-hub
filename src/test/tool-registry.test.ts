@@ -1,8 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { bySlug, calcs } from "@/lib/registry";
 
-const defaults = (slug: string) => Object.fromEntries(bySlug[slug]!.inputs.map((input) => [input.key, input.def === "today" ? "2026-11-12" : input.def]));
-const compute = (slug: string, values: Record<string, string> = {}) => bySlug[slug]!.compute({ ...defaults(slug), ...values });
+const defaults = (slug: string) =>
+  Object.fromEntries(
+    bySlug[slug]!.inputs.map((input) => [
+      input.key,
+      input.def === "today" ? "2026-11-12" : input.def,
+    ]),
+  );
+const compute = (slug: string, values: Record<string, string> = {}) =>
+  bySlug[slug]!.compute({ ...defaults(slug), ...values });
 
 describe("tool registry", () => {
   it("has unique page addresses and every standard tool returns a labelled result", () => {
@@ -12,7 +19,10 @@ describe("tool registry", () => {
       if (tool.custom) continue;
       const result = tool.compute(defaults(tool.slug));
       expect(result.length, tool.slug).toBeGreaterThan(0);
-      expect(result.every((item) => item.label.length > 0 && typeof item.value === "string"), tool.slug).toBe(true);
+      expect(
+        result.every((item) => item.label.length > 0 && typeof item.value === "string"),
+        tool.slug,
+      ).toBe(true);
     }
   });
 

@@ -4,4 +4,9 @@ import { financeHealthTools } from "./finance-health";
 import { textRandomDeveloperTools } from "./text-random-developer";
 import { mediaSportsTools } from "./media-sports";
 
-export const extraCalcs: Calc[] = [...mathConversionTools, ...financeHealthTools, ...textRandomDeveloperTools, ...mediaSportsTools];
+export const extraCalcs: Calc[] = [
+  ...mathConversionTools,
+  ...financeHealthTools,
+  ...textRandomDeveloperTools,
+  ...mediaSportsTools,
+];
