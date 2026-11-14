@@ -5,5 +5,7 @@
 - [x] Build a professional searchable multi-category tool website with individual tool pages.
 - [x] Expand to 185 working tools across calculators, converters, text, random, developer, media and sports utilities.
 - [x] Verify calculations, routing, metadata, production build and key desktop/mobile browser flows.
+- [ ] Add the next MiniWebTool-inspired batch with fully working calculations and detailed, unique landing-page guidance.
+- [ ] Verify the new calculations, metadata, routing and browser flows, then commit the batch.
 - [ ] Replicate MiniWebTool's remaining catalogue beyond the current 185 tools; full 2,000-plus parity requires a staged follow-up rather than placeholder pages.
 - [x] Commit the completed changes.

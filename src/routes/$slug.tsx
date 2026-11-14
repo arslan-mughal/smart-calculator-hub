@@ -326,6 +326,22 @@ function Page() {
             <p className="section-kicker">Guide & explanation</p>
             <h2>What is the {c.name}?</h2>
             <p>{c.about}</p>
+            {c.howToUse && (
+              <>
+                <h2>How to use the {c.name}</h2>
+                <ol>
+                  {c.howToUse.map((step) => (
+                    <li key={step}>{step}</li>
+                  ))}
+                </ol>
+              </>
+            )}
+            {c.details?.map((section) => (
+              <section key={section.heading}>
+                <h2>{section.heading}</h2>
+                <p>{section.body}</p>
+              </section>
+            ))}
             <h2>Formula and method</h2>
             <p>{c.formula}</p>
             <h2>Worked example</h2>

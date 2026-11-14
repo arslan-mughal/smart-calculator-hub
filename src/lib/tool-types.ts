@@ -42,6 +42,8 @@ export type Calc = {
   about: string;
   formula: string;
   example: string;
+  howToUse?: string[];
+  details?: { heading: string; body: string }[];
   tips: string[];
   faqs: { q: string; a: string }[];
   custom?: "image-resizer" | "qr-code";

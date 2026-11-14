@@ -13,7 +13,16 @@ export type ToolSeed = Pick<Calc, "slug" | "name" | "category" | "short" | "inpu
   Partial<
     Pick<
       Calc,
-      "keywords" | "about" | "formula" | "example" | "tips" | "faqs" | "custom" | "popular"
+      | "keywords"
+      | "about"
+      | "formula"
+      | "example"
+      | "howToUse"
+      | "details"
+      | "tips"
+      | "faqs"
+      | "custom"
+      | "popular"
     >
   >;
 
