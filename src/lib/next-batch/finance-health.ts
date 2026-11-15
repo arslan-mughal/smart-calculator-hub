@@ -50,7 +50,7 @@ export const nextFinanceHealthTools: Calc[] = [
       { heading: "What this estimate does not include", body: "APR rules and included charges vary by country and loan product. Optional insurance, late charges, early-settlement penalties and costs that would apply even in a cash purchase are not automatically included. For a regulated quotation, use the APR disclosed by the lender and check whether repayments, compounding and fees match the assumptions used here." },
     ],
     formula: "Payment = P·r ÷ (1 − (1+r)⁻ⁿ). APR is found by solving net proceeds = payment × (1 − (1+a)⁻ⁿ) ÷ a for monthly APR rate a, then multiplying a by 12 × 100.",
-    example: "A 20,000 loan at 7.5% for five years has a payment of about 400.76. If 750 of required fees leaves 19,250 in net proceeds, the estimated APR is about 9.09%, rather than 7.5%.",
+    example: "A 20,000 loan at 7.5% for five years has a payment of about 400.76. If 750 of required fees leaves 19,250 in net proceeds, the estimated APR is about 9.12%, rather than 7.5%.",
     tips: ["Compare offers over identical terms; extending a term can hide fees behind a lower payment.", "Separate optional add-ons from mandatory finance charges before entering fees.", "Use total interest plus fees as a second comparison, especially if you expect to repay early."],
     faqs: [
       { q: "Is APR the same as the effective annual rate?", a: "No. Nominal APR annualises the monthly percentage-rate calculation without compounding it. The effective annual rate also shows the effect of monthly compounding and is normally slightly higher." },
@@ -128,7 +128,7 @@ export const nextFinanceHealthTools: Calc[] = [
       { heading: "Why the cheapest monthly quote can cost more", body: "A large upfront payment lowers the monthly figure but does not necessarily improve the underlying deal. Mileage allowances, disposition charges, wear standards and the residual assumption all affect value. Compare identical mileage and terms, ask for the adjusted capitalised cost, and consider what happens to upfront money if the vehicle is written off early." },
     ],
     formula: "Adjusted capital = price − upfront reduction. Monthly depreciation = (adjusted capital − residual) ÷ months. Finance charge = (adjusted capital + residual) × money factor.",
-    example: "A 38,000 vehicle with 3,000 upfront and a 22,800 residual has 12,200 to depreciate over 36 months. At a 0.00175 money factor, the base payment is about 438.99 per month before tax and fees.",
+    example: "A 38,000 vehicle with 3,000 upfront and a 22,800 residual has 12,200 to depreciate over 36 months. At a 0.00175 money factor, the base payment is about 440.04 per month before tax and fees.",
     tips: ["Negotiate vehicle price before discussing the monthly lease payment.", "Check the residual and money factor against the written quote.", "Choose a mileage allowance that reflects real driving; excess-mileage charges can be substantial."],
     faqs: [
       { q: "Does this payment include tax and fees?", a: "No. It shows base depreciation and finance charges. Tax treatment, acquisition fees, registration and other charges vary and should be added from the lease quote." },
@@ -326,7 +326,7 @@ export const nextFinanceHealthTools: Calc[] = [
         { label: "Recommended total gain", value: range ? `${M(range[0], 1)}–${M(range[1], 1)} kg` : "No established IOM range for this group" },
         { label: "Illustrative gain range by current week", value: v.type === "single" ? currentRange : "Twin trajectories need individual clinical guidance" },
         { label: "Your gain so far", value: M(N(v.current) - N(v.kg), 1) + " kg" },
-        { label: "Typical weekly gain in 2nd/3rd trimester", value: v.type === "single" ? `${M(weekly[category][0], 2)}–${M(weekly[category][1], 2)} kg` : "Not estimated for twins" },
+        { label: "Typical weekly gain in 2nd/3rd trimester", value: v.type === "single" ? `${M(weekly[category]![0], 2)}–${M(weekly[category]![1], 2)} kg` : "Not estimated for twins" },
       ];
     },
     about: "Gestational weight-gain guidance reflects pre-pregnancy body mass index and whether the pregnancy is singleton or multiple. This calculator summarises Institute of Medicine (IOM/National Academies) total ranges and, for singleton pregnancies, an illustrative trajectory based on typical first-trimester and later weekly gains. It is an educational reference, not a target to force through diet or a substitute for maternity care.",
@@ -336,7 +336,7 @@ export const nextFinanceHealthTools: Calc[] = [
       { heading: "Twins and higher-order multiples", body: "IOM provisional twin ranges are shown where established, but there is insufficient evidence for a corresponding underweight twin range and no universal weekly trajectory here. Higher-order multiples, existing medical conditions, fetal growth concerns and significant swelling require specific guidance from the maternity team." },
     ],
     formula: "Pre-pregnancy BMI = pre-pregnancy kg ÷ height in metres². Singleton weekly trajectory = early gain + proportion of remaining recommended gain after week 13. Total ranges follow IOM categories.",
-    example: "At 65 kg and 165 cm, pre-pregnancy BMI is 23.9, in the normal-weight category. The singleton total reference is 11.5–16 kg. At week 24, the illustrative gain range is approximately 5.4–8.4 kg.",
+    example: "At 65 kg and 165 cm, pre-pregnancy BMI is 23.9, in the normal-weight category. The singleton total reference is 11.5–16 kg. At week 24, the illustrative gain range is approximately 5.0–7.7 kg.",
     tips: ["Use pre-pregnancy weight, not current weight, to select the BMI category.", "Never attempt weight loss during pregnancy without guidance from your maternity clinician.", "Sudden marked swelling or rapid change with headache or visual symptoms needs prompt clinical assessment."],
     faqs: [
       { q: "How much weight should I gain during pregnancy?", a: "For a singleton pregnancy and pre-pregnancy BMI of 18.5–24.9, the IOM range is 11.5–16 kg. Other BMI categories and twin pregnancies have different ranges, shown by the calculator." },

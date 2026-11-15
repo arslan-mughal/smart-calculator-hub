@@ -157,11 +157,17 @@
   line-height: 1.8;
   color: var(--color-foreground);
 }
-.prose-calc ul {
-  list-style: disc;
+.prose-calc ul,
+.prose-calc ol {
   padding-left: 1.35rem;
   margin-bottom: 1.1rem;
   line-height: 1.8;
+}
+.prose-calc ul {
+  list-style: disc;
+}
+.prose-calc ol {
+  list-style: decimal;
 }
 .prose-calc li {
   margin-bottom: 0.35rem;

@@ -19,8 +19,8 @@ function zoneParts(date: Date, timeZone: string) {
 }
 
 function zonedDateToUtc(date: string, time: string, timeZone: string) {
-  const [year, month, day] = date.split("-").map(Number);
-  const [hour, minute] = time.split(":").map(Number);
+  const [year = 0, month = 1, day = 1] = date.split("-").map(Number);
+  const [hour = 0, minute = 0] = time.split(":").map(Number);
   const target = Date.UTC(year, month - 1, day, hour, minute);
   let guess = target;
   for (let i = 0; i < 3; i += 1) {
@@ -61,7 +61,7 @@ export const nextMathDateTools: Calc[] = [
       const mean = values.reduce((a, b) => a + b, 0) / n;
       const median = (sorted: number[]) => {
         const mid = Math.floor(sorted.length / 2);
-        return sorted.length % 2 ? sorted[mid] : ((sorted[mid - 1] ?? 0) + (sorted[mid] ?? 0)) / 2;
+        return sorted.length % 2 ? (sorted[mid] ?? 0) : ((sorted[mid - 1] ?? 0) + (sorted[mid] ?? 0)) / 2;
       };
       const counts = new Map<number, number>();
       values.forEach((x) => counts.set(x, (counts.get(x) ?? 0) + 1));
@@ -198,7 +198,7 @@ export const nextMathDateTools: Calc[] = [
       { heading: "Determinants, area and volume", body: "For a 2 × 2 matrix, the absolute determinant is the area of the parallelogram formed by its column vectors. For 3 × 3 it is the volume scale factor of the corresponding parallelepiped. The sign reflects orientation: swapping two rows reverses the sign without changing the absolute scale factor." },
     ],
     formula: "2 × 2: |A| = ad − bc. 3 × 3 uses cofactor expansion: a(ei−fh) − b(di−fg) + c(dh−eg). Trace = sum of diagonal entries.",
-    example: "For [[2,1,3],[4,0,5],[1,−2,2]], the determinant is 27 and the trace is 4. Because the determinant is non-zero, the matrix is invertible.",
+    example: "For [[2,1,3],[4,0,5],[1,−2,2]], the determinant is −7 and the trace is 4. Because the determinant is non-zero, the matrix is invertible.",
     tips: ["Keep row order consistent; swapping rows changes the determinant's sign.", "Use decimal points rather than decimal commas as separators.", "Near-zero floating-point results are treated as singular only within a very small numerical tolerance."],
     faqs: [
       { q: "Can a non-square matrix have a determinant?", a: "No. The determinant is defined only for square matrices. This page supports the common 2 × 2 and 3 × 3 cases." },
@@ -219,7 +219,7 @@ export const nextMathDateTools: Calc[] = [
     compute: (v) => {
       const first = nums(v.eq1), second = nums(v.eq2);
       if (first.length !== 3 || second.length !== 3) return [{ label: "Result", value: "Enter three coefficients for each equation" }];
-      const [a, b, c] = first, [d, e, f] = second;
+      const [a = 0, b = 0, c = 0] = first, [d = 0, e = 0, f = 0] = second;
       const determinant = a * e - b * d;
       const dx = c * e - b * f, dy = a * f - c * d;
       if (Math.abs(determinant) < 1e-12) {
