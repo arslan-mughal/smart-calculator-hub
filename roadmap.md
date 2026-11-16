@@ -1,7 +1,7 @@
 # Task roadmap
 
-- [ ] Add an AI calculator finder that recommends the right tool and explains its inputs through AI Gateway.
-- [ ] Test the live model response, recommendation UI and error handling, then commit the feature.
+- [x] Add an AI calculator finder that recommends the right tool and explains its inputs through AI Gateway.
+- [x] Test the live model response, recommendation UI and input validation, then commit the feature.
 - [x] Repair TypeScript errors in the calculator registry and site footer.
 - [x] Study MiniWebTool's structure, design and complete tool catalogue.
 - [x] Build a professional searchable multi-category tool website with individual tool pages.

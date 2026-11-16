@@ -27,13 +27,20 @@ function Privacy() {
       </span>
       <p className="section-kicker mt-5">Your data</p>
       <h1 className="mt-3 font-display text-4xl font-extrabold">Privacy policy</h1>
-      <p className="mt-4 text-muted-foreground">Last updated: 12 November 2026</p>
+      <p className="mt-4 text-muted-foreground">Last updated: 15 November 2026</p>
       <article className="prose-calc mt-8">
         <h2>Calculator and tool entries</h2>
         <p>
           CalcHub's calculations, text transformations, random generators and formatting tools run
           in your browser. The values you type are not sent to a CalcHub database and are not saved
           by the application. Clearing or refreshing the page removes the current entries.
+        </p>
+        <h2>AI calculator finder</h2>
+        <p>
+          When you submit a description to the AI calculator finder, that description and CalcHub's
+          tool catalogue are sent to Lovable AI to produce a tool recommendation and input guidance.
+          The feature does not send the values you subsequently enter into a calculator. Do not
+          include names, account numbers or other sensitive personal details in your description.
         </p>
         <h2>Images and generated files</h2>
         <p>

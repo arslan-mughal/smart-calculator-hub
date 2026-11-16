@@ -15,6 +15,7 @@ import {
 import { calcs, categories, bySlug } from "@/lib/registry";
 import { ToolCard, ToolIcon } from "@/components/tool-card";
 import { ToolSearch } from "@/components/tool-search";
+import { AiCalculatorFinder } from "@/components/ai-calculator-finder";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -95,7 +96,7 @@ function Index() {
               </div>
               <div className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-xs font-medium text-muted-foreground">
                 <span className="flex items-center gap-1.5">
-                  <ShieldCheck className="size-4 text-primary" /> Your inputs stay on your device
+                  <ShieldCheck className="size-4 text-primary" /> Calculator inputs stay on your device
                 </span>
                 <span className="flex items-center gap-1.5">
                   <Zap className="size-4 text-primary" /> Instant, unlimited use
@@ -196,6 +197,8 @@ function Index() {
         </div>
       </section>
 
+      <AiCalculatorFinder />
+
       <section className="mx-auto max-w-7xl px-5 py-14 lg:px-8">
         <div className="flex items-end justify-between gap-5">
           <div>
@@ -274,7 +277,7 @@ function Index() {
             [
               LockKeyhole,
               "Private by design",
-              "Calculations and file processing happen in your browser. Your entries are not saved or sent to us.",
+              "Calculations and file processing happen in your browser. AI finder descriptions are sent only to generate recommendations.",
             ],
             [
               Zap,
