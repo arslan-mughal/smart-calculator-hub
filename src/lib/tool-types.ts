@@ -46,6 +46,6 @@ export type Calc = {
   details?: { heading: string; body: string }[];
   tips: string[];
   faqs: { q: string; a: string }[];
-  custom?: "image-resizer" | "qr-code";
+  custom?: "image-resizer" | "qr-code" | "scientific";
   popular?: boolean;
 };

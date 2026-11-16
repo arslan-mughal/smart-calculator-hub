@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/accordion";
 import { ToolIcon } from "@/components/tool-card";
 import { ImageResizer, QrCodeGenerator } from "@/components/custom-tools";
+import { ScientificCalculator } from "@/components/scientific-calculator";
 
 export const Route = createFileRoute("/$slug")({
   loader: ({ params }) => {
@@ -191,6 +192,8 @@ function Page() {
                 <ImageResizer />
               ) : c.custom === "qr-code" ? (
                 <QrCodeGenerator />
+              ) : c.custom === "scientific" ? (
+                <ScientificCalculator />
               ) : (
                 <div className="grid gap-7 md:grid-cols-2">
                   <div>
