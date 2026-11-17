@@ -2,18 +2,285 @@ import type { Calc } from "../tool-types";
 import { M, N, numberInput, textInput, tool } from "./shared";
 
 export const mediaSportsTools: Calc[] = [
-  tool({slug:"image-resizer",name:"Image Resizer",category:"Image & Media",short:"Resize JPG, PNG and WebP images privately in your browser.",popular:true,custom:"image-resizer",inputs:[],compute:()=>[],about:"Resize an image to exact pixel dimensions or a percentage of its original size, preserve its aspect ratio and download the result. Your image is processed locally with your browser's canvas and is never uploaded.",formula:"New height = new width ÷ original aspect ratio when Lock aspect ratio is enabled.",example:"A 4032 × 3024 image resized to 1200 pixels wide becomes 1200 × 900 at the same 4:3 aspect ratio.",tips:["Use WebP for a smaller web-ready file.","Resizing upward cannot restore detail that is not in the original.","Your original file is never changed."],faqs:[{q:"Are my images uploaded?",a:"No. Resizing and export happen entirely in your browser."},{q:"Which formats can I download?",a:"You can export JPG, PNG or WebP, subject to your browser's canvas support."}]}),
-  tool({slug:"qr-code-generator",name:"QR Code Generator",category:"Image & Media",short:"Create and download a QR code for a link, text or contact detail.",popular:true,custom:"qr-code",inputs:[],compute:()=>[],about:"Turn a URL or plain text into a crisp QR code, choose its size and error correction, then download it as a PNG. Generation happens locally in your browser with no account and no tracking pixel.",formula:"The QR specification encodes your text as modules. Higher error correction allows more damage to be recovered but creates a denser code.",example:"Paste https://example.com and download a 512-pixel QR code ready for a document or presentation.",tips:["Always scan the finished code before printing it.","Keep a clear quiet zone around the code.","Higher error correction is useful when placing a small logo over the code."],faqs:[{q:"Do QR codes expire?",a:"A static QR code containing your text does not expire. A linked website can still go offline."},{q:"Is the content sent to a server?",a:"No. The QR image is generated in your browser."}]}),
-  tool({slug:"aspect-ratio-calculator",name:"Aspect Ratio Calculator",category:"Image & Media",short:"Calculate a proportional height and simplified aspect ratio from pixel dimensions.",inputs:[numberInput("w","Width","1920","px"),numberInput("h","Height","1080","px"),numberInput("nw","New width","1280","px")],compute:(v)=>{const w=N(v.w),h=N(v.h),nw=N(v.nw),gcd=(a:number,b:number):number=>b?gcd(b,a%b):Math.abs(a),g=gcd(Math.round(w),Math.round(h))||1;return[{label:"New height",value:M(nw*h/w,2)+" px"},{label:"Simplified ratio",value:`${M(w/g,0)} : ${M(h/g,0)}`},{label:"Decimal ratio",value:M(w/h,6)}]},formula:"New height = new width × original height ÷ original width.",example:"1920 × 1080 is 16:9; at 1280 pixels wide the height is 720."}),
-  tool({slug:"color-code-converter",name:"Color Code Converter",category:"Image & Media",short:"Convert a six-digit HEX colour to RGB and HSL values.",inputs:[textInput("hex","HEX colour","#0F766E")],compute:(v)=>{const hex=String(v.hex).replace("#","");if(!/^[\da-f]{6}$/i.test(hex))return[{label:"Result",value:"Enter a six-digit HEX colour"}];const [r=0,g=0,b=0]=[0,2,4].map(i=>parseInt(hex.slice(i,i+2),16)/255),max=Math.max(r,g,b),min=Math.min(r,g,b),l=(max+min)/2,d=max-min;let h=0;if(d){if(max===r)h=60*(((g-b)/d)%6);else if(max===g)h=60*((b-r)/d+2);else h=60*((r-g)/d+4)}if(h<0)h+=360;const s=d===0?0:d/(1-Math.abs(2*l-1));return[{label:"RGB",value:`rgb(${Math.round(r*255)}, ${Math.round(g*255)}, ${Math.round(b*255)})`},{label:"HSL",value:`hsl(${M(h,1)}, ${M(s*100,1)}%, ${M(l*100,1)}%)`},{label:"HEX",value:"#"+hex.toUpperCase()}]},formula:"HEX pairs are base-16 RGB channels. HSL is derived from the largest and smallest channel intensities.",example:"#0F766E is rgb(15, 118, 110)."}),
-  tool({slug:"batting-average-calculator",name:"Batting Average Calculator",category:"Sports",short:"Calculate a baseball or softball batting average from hits and at-bats.",inputs:[numberInput("h","Hits","150"),numberInput("ab","At-bats","500")],compute:(v)=>[{label:"Batting average",value:M(N(v.h)/N(v.ab),3).replace(/^0/,"")},{label:"Hits per 100 at-bats",value:M(N(v.h)/N(v.ab)*100,1)}],formula:"Batting average = hits ÷ at-bats, conventionally displayed to three decimals.",example:"150 hits in 500 at-bats gives a .300 batting average."}),
-  tool({slug:"on-base-percentage-calculator",name:"On-Base Percentage Calculator",category:"Sports",short:"Calculate OBP from hits, walks, hit-by-pitches and plate appearances.",inputs:[numberInput("h","Hits","150"),numberInput("bb","Walks","60"),numberInput("hbp","Hit by pitch","5"),numberInput("ab","At-bats","500"),numberInput("sf","Sacrifice flies","5")],compute:(v)=>[{label:"On-base percentage",value:M((N(v.h)+N(v.bb)+N(v.hbp))/(N(v.ab)+N(v.bb)+N(v.hbp)+N(v.sf)),3)}],formula:"OBP = (H + BB + HBP) ÷ (AB + BB + HBP + SF).",example:"The default values give 215 ÷ 570 = .377 OBP."}),
-  tool({slug:"slugging-percentage-calculator",name:"Slugging Percentage Calculator",category:"Sports",short:"Calculate total bases per at-bat from singles, doubles, triples and home runs.",inputs:[numberInput("s","Singles","90"),numberInput("d","Doubles","35"),numberInput("t","Triples","5"),numberInput("hr","Home runs","20"),numberInput("ab","At-bats","500")],compute:(v)=>{const tb=N(v.s)+2*N(v.d)+3*N(v.t)+4*N(v.hr);return[{label:"Slugging percentage",value:M(tb/N(v.ab),3)},{label:"Total bases",value:M(tb,0)}]},formula:"SLG = (1B + 2×2B + 3×3B + 4×HR) ÷ AB.",example:"90 singles, 35 doubles, 5 triples and 20 home runs give 255 total bases and .510 SLG."}),
-  tool({slug:"earned-run-average-calculator",name:"ERA Calculator",category:"Sports",short:"Calculate baseball earned run average per nine innings.",inputs:[numberInput("er","Earned runs","45"),numberInput("ip","Innings pitched","150")],compute:(v)=>[{label:"Earned run average",value:M(N(v.er)*9/N(v.ip),2)}],formula:"ERA = earned runs × 9 ÷ innings pitched.",example:"45 earned runs over 150 innings gives a 2.70 ERA."}),
-  tool({slug:"whip-calculator",name:"WHIP Calculator",category:"Sports",short:"Calculate walks plus hits per inning pitched.",inputs:[numberInput("bb","Walks","40"),numberInput("h","Hits","120"),numberInput("ip","Innings pitched","150")],compute:(v)=>[{label:"WHIP",value:M((N(v.bb)+N(v.h))/N(v.ip),3)}],formula:"WHIP = (walks + hits) ÷ innings pitched.",example:"40 walks and 120 hits over 150 innings gives 1.067 WHIP."}),
-  tool({slug:"cricket-strike-rate-calculator",name:"Cricket Strike Rate Calculator",category:"Sports",short:"Calculate batting runs per 100 balls or bowling balls per wicket.",inputs:[numberInput("runs","Runs scored","85"),numberInput("balls","Balls faced","60")],compute:(v)=>[{label:"Batting strike rate",value:M(N(v.runs)/N(v.balls)*100,2)},{label:"Runs per ball",value:M(N(v.runs)/N(v.balls),3)}],formula:"Batting strike rate = runs ÷ balls faced × 100.",example:"85 runs from 60 balls gives a strike rate of 141.67."}),
-  tool({slug:"bowling-average-calculator",name:"Bowling Average Calculator",category:"Sports",short:"Calculate cricket runs conceded per wicket taken.",inputs:[numberInput("runs","Runs conceded","1250"),numberInput("wickets","Wickets taken","50")],compute:(v)=>[{label:"Bowling average",value:M(N(v.runs)/N(v.wickets),2)}],formula:"Bowling average = runs conceded ÷ wickets taken.",example:"1,250 runs and 50 wickets gives a bowling average of 25.00."}),
-  tool({slug:"winning-percentage-calculator",name:"Winning Percentage Calculator",category:"Sports",short:"Calculate a team's win percentage with optional ties counted as half-wins.",inputs:[numberInput("w","Wins","45"),numberInput("l","Losses","25"),numberInput("t","Ties","2")],compute:(v)=>[{label:"Winning percentage",value:M((N(v.w)+N(v.t)/2)/(N(v.w)+N(v.l)+N(v.t))*100,2)+"%"},{label:"Games played",value:M(N(v.w)+N(v.l)+N(v.t),0)}],formula:"Win% = (wins + 0.5 × ties) ÷ total games × 100.",example:"45 wins, 25 losses and 2 ties gives 63.89%."}),
-  tool({slug:"field-goal-percentage-calculator",name:"Field Goal Percentage Calculator",category:"Sports",short:"Calculate basketball field goals made as a percentage of attempts.",inputs:[numberInput("made","Field goals made","350"),numberInput("attempts","Field goal attempts","750")],compute:(v)=>[{label:"Field goal percentage",value:M(N(v.made)/N(v.attempts)*100,2)+"%"},{label:"Missed field goals",value:M(N(v.attempts)-N(v.made),0)}],formula:"FG% = field goals made ÷ field goals attempted × 100.",example:"350 makes from 750 attempts gives 46.67%."}),
-  tool({slug:"free-throw-percentage-calculator",name:"Free Throw Percentage Calculator",category:"Sports",short:"Calculate basketball free throws made as a percentage of attempts.",inputs:[numberInput("made","Free throws made","180"),numberInput("attempts","Free throw attempts","200")],compute:(v)=>[{label:"Free throw percentage",value:M(N(v.made)/N(v.attempts)*100,2)+"%"},{label:"Missed free throws",value:M(N(v.attempts)-N(v.made),0)}],formula:"FT% = free throws made ÷ free throws attempted × 100.",example:"180 makes from 200 attempts gives 90%."}),
+  tool({
+    slug: "image-resizer",
+    name: "Image Resizer",
+    category: "Image & Media",
+    short: "Resize JPG, PNG and WebP images privately in your browser.",
+    popular: true,
+    custom: "image-resizer",
+    inputs: [],
+    compute: () => [],
+    about:
+      "Resize an image to exact pixel dimensions or a percentage of its original size, preserve its aspect ratio and download the result. Your image is processed locally with your browser's canvas and is never uploaded.",
+    formula: "New height = new width ÷ original aspect ratio when Lock aspect ratio is enabled.",
+    example:
+      "A 4032 × 3024 image resized to 1200 pixels wide becomes 1200 × 900 at the same 4:3 aspect ratio.",
+    tips: [
+      "Use WebP for a smaller web-ready file.",
+      "Resizing upward cannot restore detail that is not in the original.",
+      "Your original file is never changed.",
+    ],
+    faqs: [
+      {
+        q: "Are my images uploaded?",
+        a: "No. Resizing and export happen entirely in your browser.",
+      },
+      {
+        q: "Which formats can I download?",
+        a: "You can export JPG, PNG or WebP, subject to your browser's canvas support.",
+      },
+    ],
+  }),
+  tool({
+    slug: "qr-code-generator",
+    name: "QR Code Generator",
+    category: "Image & Media",
+    short: "Create and download a QR code for a link, text or contact detail.",
+    popular: true,
+    custom: "qr-code",
+    inputs: [],
+    compute: () => [],
+    about:
+      "Turn a URL or plain text into a crisp QR code, choose its size and error correction, then download it as a PNG. Generation happens locally in your browser with no account and no tracking pixel.",
+    formula:
+      "The QR specification encodes your text as modules. Higher error correction allows more damage to be recovered but creates a denser code.",
+    example:
+      "Paste https://example.com and download a 512-pixel QR code ready for a document or presentation.",
+    tips: [
+      "Always scan the finished code before printing it.",
+      "Keep a clear quiet zone around the code.",
+      "Higher error correction is useful when placing a small logo over the code.",
+    ],
+    faqs: [
+      {
+        q: "Do QR codes expire?",
+        a: "A static QR code containing your text does not expire. A linked website can still go offline.",
+      },
+      {
+        q: "Is the content sent to a server?",
+        a: "No. The QR image is generated in your browser.",
+      },
+    ],
+  }),
+  tool({
+    slug: "aspect-ratio-calculator",
+    name: "Aspect Ratio Calculator",
+    category: "Image & Media",
+    short: "Calculate a proportional height and simplified aspect ratio from pixel dimensions.",
+    inputs: [
+      numberInput("w", "Width", "1920", "px"),
+      numberInput("h", "Height", "1080", "px"),
+      numberInput("nw", "New width", "1280", "px"),
+    ],
+    compute: (v) => {
+      const w = N(v.w),
+        h = N(v.h),
+        nw = N(v.nw),
+        gcd = (a: number, b: number): number => (b ? gcd(b, a % b) : Math.abs(a)),
+        g = gcd(Math.round(w), Math.round(h)) || 1;
+      return [
+        { label: "New height", value: M((nw * h) / w, 2) + " px" },
+        { label: "Simplified ratio", value: `${M(w / g, 0)} : ${M(h / g, 0)}` },
+        { label: "Decimal ratio", value: M(w / h, 6) },
+      ];
+    },
+    formula: "New height = new width × original height ÷ original width.",
+    example: "1920 × 1080 is 16:9; at 1280 pixels wide the height is 720.",
+  }),
+  tool({
+    slug: "color-code-converter",
+    name: "Color Code Converter",
+    category: "Image & Media",
+    short: "Convert a six-digit HEX colour to RGB and HSL values.",
+    inputs: [textInput("hex", "HEX colour", "#0F766E")],
+    compute: (v) => {
+      const hex = String(v.hex).replace("#", "");
+      if (!/^[\da-f]{6}$/i.test(hex))
+        return [{ label: "Result", value: "Enter a six-digit HEX colour" }];
+      const [r = 0, g = 0, b = 0] = [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255),
+        max = Math.max(r, g, b),
+        min = Math.min(r, g, b),
+        l = (max + min) / 2,
+        d = max - min;
+      let h = 0;
+      if (d) {
+        if (max === r) h = 60 * (((g - b) / d) % 6);
+        else if (max === g) h = 60 * ((b - r) / d + 2);
+        else h = 60 * ((r - g) / d + 4);
+      }
+      if (h < 0) h += 360;
+      const s = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1));
+      return [
+        {
+          label: "RGB",
+          value: `rgb(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)})`,
+        },
+        { label: "HSL", value: `hsl(${M(h, 1)}, ${M(s * 100, 1)}%, ${M(l * 100, 1)}%)` },
+        { label: "HEX", value: "#" + hex.toUpperCase() },
+      ];
+    },
+    formula:
+      "HEX pairs are base-16 RGB channels. HSL is derived from the largest and smallest channel intensities.",
+    example: "#0F766E is rgb(15, 118, 110).",
+  }),
+  tool({
+    slug: "batting-average-calculator",
+    name: "Batting Average Calculator",
+    category: "Sports",
+    short: "Calculate a baseball or softball batting average from hits and at-bats.",
+    inputs: [numberInput("h", "Hits", "150"), numberInput("ab", "At-bats", "500")],
+    compute: (v) => [
+      { label: "Batting average", value: M(N(v.h) / N(v.ab), 3).replace(/^0/, "") },
+      { label: "Hits per 100 at-bats", value: M((N(v.h) / N(v.ab)) * 100, 1) },
+    ],
+    formula: "Batting average = hits ÷ at-bats, conventionally displayed to three decimals.",
+    example: "150 hits in 500 at-bats gives a .300 batting average.",
+  }),
+  tool({
+    slug: "on-base-percentage-calculator",
+    name: "On-Base Percentage Calculator",
+    category: "Sports",
+    short: "Calculate OBP from hits, walks, hit-by-pitches and plate appearances.",
+    inputs: [
+      numberInput("h", "Hits", "150"),
+      numberInput("bb", "Walks", "60"),
+      numberInput("hbp", "Hit by pitch", "5"),
+      numberInput("ab", "At-bats", "500"),
+      numberInput("sf", "Sacrifice flies", "5"),
+    ],
+    compute: (v) => [
+      {
+        label: "On-base percentage",
+        value: M((N(v.h) + N(v.bb) + N(v.hbp)) / (N(v.ab) + N(v.bb) + N(v.hbp) + N(v.sf)), 3),
+      },
+    ],
+    formula: "OBP = (H + BB + HBP) ÷ (AB + BB + HBP + SF).",
+    example: "The default values give 215 ÷ 570 = .377 OBP.",
+  }),
+  tool({
+    slug: "slugging-percentage-calculator",
+    name: "Slugging Percentage Calculator",
+    category: "Sports",
+    short: "Calculate total bases per at-bat from singles, doubles, triples and home runs.",
+    inputs: [
+      numberInput("s", "Singles", "90"),
+      numberInput("d", "Doubles", "35"),
+      numberInput("t", "Triples", "5"),
+      numberInput("hr", "Home runs", "20"),
+      numberInput("ab", "At-bats", "500"),
+    ],
+    compute: (v) => {
+      const tb = N(v.s) + 2 * N(v.d) + 3 * N(v.t) + 4 * N(v.hr);
+      return [
+        { label: "Slugging percentage", value: M(tb / N(v.ab), 3) },
+        { label: "Total bases", value: M(tb, 0) },
+      ];
+    },
+    formula: "SLG = (1B + 2×2B + 3×3B + 4×HR) ÷ AB.",
+    example:
+      "90 singles, 35 doubles, 5 triples and 20 home runs give 255 total bases and .510 SLG.",
+  }),
+  tool({
+    slug: "earned-run-average-calculator",
+    name: "ERA Calculator",
+    category: "Sports",
+    short: "Calculate baseball earned run average per nine innings.",
+    inputs: [numberInput("er", "Earned runs", "45"), numberInput("ip", "Innings pitched", "150")],
+    compute: (v) => [{ label: "Earned run average", value: M((N(v.er) * 9) / N(v.ip), 2) }],
+    formula: "ERA = earned runs × 9 ÷ innings pitched.",
+    example: "45 earned runs over 150 innings gives a 2.70 ERA.",
+  }),
+  tool({
+    slug: "whip-calculator",
+    name: "WHIP Calculator",
+    category: "Sports",
+    short: "Calculate walks plus hits per inning pitched.",
+    inputs: [
+      numberInput("bb", "Walks", "40"),
+      numberInput("h", "Hits", "120"),
+      numberInput("ip", "Innings pitched", "150"),
+    ],
+    compute: (v) => [{ label: "WHIP", value: M((N(v.bb) + N(v.h)) / N(v.ip), 3) }],
+    formula: "WHIP = (walks + hits) ÷ innings pitched.",
+    example: "40 walks and 120 hits over 150 innings gives 1.067 WHIP.",
+  }),
+  tool({
+    slug: "cricket-strike-rate-calculator",
+    name: "Cricket Strike Rate Calculator",
+    category: "Sports",
+    short: "Calculate batting runs per 100 balls or bowling balls per wicket.",
+    inputs: [numberInput("runs", "Runs scored", "85"), numberInput("balls", "Balls faced", "60")],
+    compute: (v) => [
+      { label: "Batting strike rate", value: M((N(v.runs) / N(v.balls)) * 100, 2) },
+      { label: "Runs per ball", value: M(N(v.runs) / N(v.balls), 3) },
+    ],
+    formula: "Batting strike rate = runs ÷ balls faced × 100.",
+    example: "85 runs from 60 balls gives a strike rate of 141.67.",
+  }),
+  tool({
+    slug: "bowling-average-calculator",
+    name: "Bowling Average Calculator",
+    category: "Sports",
+    short: "Calculate cricket runs conceded per wicket taken.",
+    inputs: [
+      numberInput("runs", "Runs conceded", "1250"),
+      numberInput("wickets", "Wickets taken", "50"),
+    ],
+    compute: (v) => [{ label: "Bowling average", value: M(N(v.runs) / N(v.wickets), 2) }],
+    formula: "Bowling average = runs conceded ÷ wickets taken.",
+    example: "1,250 runs and 50 wickets gives a bowling average of 25.00.",
+  }),
+  tool({
+    slug: "winning-percentage-calculator",
+    name: "Winning Percentage Calculator",
+    category: "Sports",
+    short: "Calculate a team's win percentage with optional ties counted as half-wins.",
+    inputs: [
+      numberInput("w", "Wins", "45"),
+      numberInput("l", "Losses", "25"),
+      numberInput("t", "Ties", "2"),
+    ],
+    compute: (v) => [
+      {
+        label: "Winning percentage",
+        value: M(((N(v.w) + N(v.t) / 2) / (N(v.w) + N(v.l) + N(v.t))) * 100, 2) + "%",
+      },
+      { label: "Games played", value: M(N(v.w) + N(v.l) + N(v.t), 0) },
+    ],
+    formula: "Win% = (wins + 0.5 × ties) ÷ total games × 100.",
+    example: "45 wins, 25 losses and 2 ties gives 63.89%.",
+  }),
+  tool({
+    slug: "field-goal-percentage-calculator",
+    name: "Field Goal Percentage Calculator",
+    category: "Sports",
+    short: "Calculate basketball field goals made as a percentage of attempts.",
+    inputs: [
+      numberInput("made", "Field goals made", "350"),
+      numberInput("attempts", "Field goal attempts", "750"),
+    ],
+    compute: (v) => [
+      { label: "Field goal percentage", value: M((N(v.made) / N(v.attempts)) * 100, 2) + "%" },
+      { label: "Missed field goals", value: M(N(v.attempts) - N(v.made), 0) },
+    ],
+    formula: "FG% = field goals made ÷ field goals attempted × 100.",
+    example: "350 makes from 750 attempts gives 46.67%.",
+  }),
+  tool({
+    slug: "free-throw-percentage-calculator",
+    name: "Free Throw Percentage Calculator",
+    category: "Sports",
+    short: "Calculate basketball free throws made as a percentage of attempts.",
+    inputs: [
+      numberInput("made", "Free throws made", "180"),
+      numberInput("attempts", "Free throw attempts", "200"),
+    ],
+    compute: (v) => [
+      { label: "Free throw percentage", value: M((N(v.made) / N(v.attempts)) * 100, 2) + "%" },
+      { label: "Missed free throws", value: M(N(v.attempts) - N(v.made), 0) },
+    ],
+    formula: "FT% = free throws made ÷ free throws attempted × 100.",
+    example: "180 makes from 200 attempts gives 90%.",
+  }),
 ];

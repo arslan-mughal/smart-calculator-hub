@@ -28,3 +28,5 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+- AI features call Lovable AI Gateway through server-only helpers and `createServerFn`; keep credentials and prompts off the client so browser code never handles gateway secrets.

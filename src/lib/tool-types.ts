@@ -19,7 +19,13 @@ export type Input =
   | { key: string; label: string; type?: "number"; def: string; suffix?: string }
   | { key: string; label: string; type: "date"; def: string }
   | { key: string; label: string; type: "text" | "textarea"; def: string; hint?: string }
-  | { key: string; label: string; type: "select"; def: string; options: { v: string; l: string }[] };
+  | {
+      key: string;
+      label: string;
+      type: "select";
+      def: string;
+      options: { v: string; l: string }[];
+    };
 
 export type Out = { label: string; value: string };
 
@@ -36,8 +42,10 @@ export type Calc = {
   about: string;
   formula: string;
   example: string;
+  howToUse?: string[];
+  details?: { heading: string; body: string }[];
   tips: string[];
   faqs: { q: string; a: string }[];
-  custom?: "image-resizer" | "qr-code";
+  custom?: "image-resizer" | "qr-code" | "scientific";
   popular?: boolean;
 };
