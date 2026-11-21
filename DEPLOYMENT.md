@@ -35,10 +35,20 @@ not persist there).
    node scripts/seed-neon.mjs db/schema.sql
    node scripts/seed-neon.mjs
    ```
-   Two databases (dev + production): set `DATABASE_URL` to the dev string,
-   run both commands, then set it to the production string and run them
-   again. The script prints a count at the end — expect 322 published posts.
-   `node scripts/seed-neon.mjs --dry-run` parses the file without writing.
+   Two databases (dev + production): use `node scripts/seed-neon-both.mjs`
+   — one command seeds both. Set the two connection strings once, then run it:
+   ```powershell
+   $env:DATABASE_URL_DEV="postgresql://user:password@ep-xxx-dev.neon.tech/dbname?sslmode=require"
+   $env:DATABASE_URL_PROD="postgresql://user:password@ep-xxx-prod.neon.tech/dbname?sslmode=require"
+   node scripts/seed-neon-both.mjs
+   ```
+   It runs the schema + seed for dev, then for production, and prints a
+   summary at the end. Options: `--dry-run` (parse only, no connection
+   strings needed), `--only=dev` / `--only=prod`, `--seed-only` (skip the
+   schema step). The script prints a count at the end — expect 322 published
+   posts on each database. `node scripts/seed-neon.mjs --dry-run` parses the
+   file without writing. (The old split seed chunks are no longer provided —
+   the script replaces them.)
 5. **Do this before the first deploy.** Until the schema is applied, the
    admin settings/blog pages fall back to the local files (which don't exist
    on Vercel), so the blog would render empty and settings saves would fail

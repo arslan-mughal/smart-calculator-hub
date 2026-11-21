@@ -24,15 +24,7 @@ import {
 
 const m = (n: number, d = 1) => fmt(n, d);
 const dateFmt = (d: Date | null) =>
-  d
-    ? d.toLocaleDateString("en-US", {
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-        timeZone: "UTC", // dogDueDate() returns UTC calendar dates
-      })
-    : "—";
+  d ? d.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" }) : "—";
 
 const SIZE_OPTIONS: { v: string; l: string }[] = (Object.keys(SIZE_LABELS) as SizeBand[]).map((v) => ({
   v,

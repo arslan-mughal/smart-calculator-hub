@@ -130,10 +130,7 @@ export function dogDueDate(matingIso: string): {
   xray: Date | null;
   nesting: Date | null;
 } {
-  // Calendar-date maths in UTC: a date-only value has no timezone, and local-time maths shifts
-  // the result by a day across DST changes (and, when read back as ISO, in UTC+ timezones).
-  // Callers must format these dates with timeZone: "UTC" (see dateFmt in batch29-pets.ts).
-  const start = new Date(`${matingIso}T00:00:00Z`);
+  const start = new Date(`${matingIso}T00:00:00`);
   if (Number.isNaN(start.getTime())) {
     return { due: null, earliest: null, latest: null, ultrasound: null, xray: null, nesting: null };
   }
