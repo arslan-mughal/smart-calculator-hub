@@ -10,16 +10,16 @@ const result = (slug: string, label: string, values: Record<string, string> = {}
   compute(slug, values).find((item) => item.label === label)?.value;
 
 describe("next MiniWebTool-inspired batch", () => {
-  it("adds 26 complete tools with instructions and two detailed editorial sections each", () => {
-    expect(nextBatchCalcs).toHaveLength(26);
+  it("adds 27 complete tools with instructions and two detailed editorial sections each", () => {
+    expect(nextBatchCalcs).toHaveLength(27);
     for (const tool of nextBatchCalcs) {
       expect(tool.howToUse?.length, tool.slug).toBeGreaterThanOrEqual(3);
-      expect(tool.details?.length, tool.slug).toBe(2);
+      expect(tool.details?.length, tool.slug).toBeGreaterThanOrEqual(2);
       expect(tool.faqs.length, tool.slug).toBeGreaterThanOrEqual(3);
       expect(tool.about.length, tool.slug).toBeGreaterThan(250);
       expect(tool.example.length, tool.slug).toBeGreaterThan(50);
     }
-    expect(new Set(nextBatchCalcs.map((tool) => tool.about)).size).toBe(26);
+    expect(new Set(nextBatchCalcs.map((tool) => tool.about)).size).toBe(27);
   });
 
   it("includes upfront loan fees when estimating APR", () => {

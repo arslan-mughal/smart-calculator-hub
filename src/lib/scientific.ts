@@ -95,12 +95,12 @@ export function evaluate(expr: string, mode: AngleMode = "deg", ans = 0): number
       const arg = peek() === "(" ? primary() : postfix();
       return FUNCS[id](arg, mode);
     }
-    throw new Error(`Unknown symbol "${t}"`);
+    throw new Error("Unknown symbol in expression");
   }
 
   if (!tokens.length) throw new Error("Enter an expression");
   const v = expression();
-  if (i < tokens.length) throw new Error(`Unexpected "${tokens[i]}"`);
+  if (i < tokens.length) throw new Error("Unexpected input in expression");
   if (!Number.isFinite(v)) throw new Error("Result is undefined");
   return Math.abs(v) < 1e-12 ? 0 : v;
 }

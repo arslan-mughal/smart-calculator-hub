@@ -1,4 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useLoaderData } from "@tanstack/react-router";
+import { lazy, Suspense } from "react";
 import {
   ArrowRight,
   Calculator,
@@ -15,46 +16,52 @@ import {
 import { calcs, categories, bySlug } from "@/lib/registry";
 import { ToolCard, ToolIcon } from "@/components/tool-card";
 import { ToolSearch } from "@/components/tool-search";
-import { AiCalculatorFinder } from "@/components/ai-calculator-finder";
+import { buildHead, rootSettingsFromMatches } from "@/lib/seo";
+
+// Below the fold: load after the first paint so the hero renders faster.
+const ToolFinder = lazy(() =>
+  import("@/components/tool-finder").then((m) => ({ default: m.ToolFinder })),
+);
 
 export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: `CalcHub — ${calcs.length} Free Online Calculators & Tools` },
-      {
-        name: "description",
-        content: `Use ${calcs.length} free online calculators, converters, text tools and generators. Fast, private and easy to use — no sign-up or downloads required.`,
-      },
-      {
-        name: "keywords",
-        content:
-          "online calculators, free online tools, mortgage calculator, bmi calculator, percentage calculator, word counter, unit converter, qr code generator, password generator",
-      },
-      { property: "og:title", content: "CalcHub — Free Online Calculators & Everyday Tools" },
-      {
-        property: "og:description",
-        content:
-          "Calculators, converters, text utilities and generators. Open a tool, get your answer and get on with your day.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
+  head: ({ matches }) => {
+    const settings = rootSettingsFromMatches(
+      matches as unknown as { routeId?: string; loaderData?: unknown }[],
+    );
+    return buildHead({
+      title: `${settings.siteName} — ${calcs.length} Free Online Calculators & Tools`,
+      description: `Use ${calcs.length} free online calculators, converters, text tools and generators. Fast, private and easy to use — no sign-up or downloads required.`,
+      path: "/",
+      keywords:
+        "online calculators, free online tools, mortgage calculator, bmi calculator, percentage calculator, word counter, unit converter, qr code generator, password generator",
+    });
+  },
   component: Index,
 });
 
+// Popular tools, ordered by keyword demand (see SEO.md): the highest-volume
+// calculators first (BMI 1.5M, percentage 1.2M, age 800k, TDEE 800k, GPA
+// 673k, mortgage 450k monthly searches), then evergreen utilities.
 const popularSlugs = [
-  "mortgage-calculator",
   "bmi-calculator",
   "percentage-calculator",
+  "age-calculator",
+  "tdee-calculator",
+  "gpa-calculator",
+  "mortgage-calculator",
   "word-counter",
-  "image-resizer",
   "qr-code-generator",
-  "password-generator",
-  "quadratic-formula-calculator",
+];
+
+const popularChips: [string, string][] = [
+  ["BMI", "bmi-calculator"],
+  ["Percentage", "percentage-calculator"],
+  ["Age", "age-calculator"],
+  ["Mortgage", "mortgage-calculator"],
 ];
 
 function Index() {
+  const { settings } = useLoaderData({ from: "__root__" });
   const popular = popularSlugs.flatMap((slug) => {
     const tool = bySlug[slug];
     return tool ? [tool] : [];
@@ -81,13 +88,11 @@ function Index() {
               </div>
               <div className="mt-5 flex flex-wrap items-center gap-2 text-xs">
                 <span className="mr-1 font-bold text-foreground">Popular:</span>
-                {["Mortgage", "Word counter", "BMI", "QR code"].map((label, index) => (
+                {popularChips.map(([label, slug]) => (
                   <Link
                     key={label}
                     to="/$slug"
-                    params={{
-                      slug: popularSlugs[index === 2 ? 1 : index === 1 ? 3 : index === 3 ? 5 : 0]!,
-                    }}
+                    params={{ slug }}
                     className="rounded-full border border-border px-3 py-1.5 font-medium text-muted-foreground transition hover:border-primary hover:text-primary"
                   >
                     {label}
@@ -105,7 +110,7 @@ function Index() {
             </div>
             <div
               className="relative hidden items-center justify-center overflow-hidden bg-secondary p-10 lg:flex"
-              aria-label="Examples of CalcHub tools"
+              aria-label={`Examples of ${settings.siteName} tools`}
             >
               <div className="absolute right-8 top-8 size-28 rounded-full border border-primary/10" />
               <div className="absolute bottom-10 left-8 size-40 rounded-full border border-primary/10" />
@@ -197,7 +202,15 @@ function Index() {
         </div>
       </section>
 
-      <AiCalculatorFinder />
+      <Suspense
+        fallback={
+          <div className="mx-auto max-w-7xl px-5 py-10 lg:px-8" aria-label="Loading tool finder">
+            <div className="h-64 animate-pulse rounded-3xl border border-border bg-card" />
+          </div>
+        }
+      >
+        <ToolFinder />
+      </Suspense>
 
       <section className="mx-auto max-w-7xl px-5 py-14 lg:px-8">
         <div className="flex items-end justify-between gap-5">
@@ -212,7 +225,7 @@ function Index() {
             Browse all {calcs.length} tools <ArrowRight className="size-4" />
           </Link>
         </div>
-        <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="tool-card-grid mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {popular.map((tool) => (
             <ToolCard key={tool.slug} tool={tool} />
           ))}
@@ -277,7 +290,7 @@ function Index() {
             [
               LockKeyhole,
               "Private by design",
-              "Calculations and file processing happen in your browser. AI finder descriptions are sent only to generate recommendations.",
+              "Calculations and file processing happen in your browser. The tool finder matches your description against the on-device catalogue — nothing is sent anywhere.",
             ],
             [
               Zap,
@@ -308,7 +321,7 @@ function Index() {
         <p className="section-kicker">Free online calculators and utilities</p>
         <h2>A practical toolbox for work, study and everyday life</h2>
         <p>
-          CalcHub brings together the <strong>online calculators</strong> and digital tools people
+          {settings.siteName} brings together the <strong>online calculators</strong> and digital tools people
           reach for most. Plan a home loan with the{" "}
           <Link to="/$slug" params={{ slug: "mortgage-calculator" }}>
             mortgage calculator

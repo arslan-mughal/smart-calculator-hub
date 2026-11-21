@@ -1,4 +1,4 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, useLoaderData } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   ArrowLeft,
@@ -13,6 +13,9 @@ import {
   Zap,
 } from "lucide-react";
 import { bySlug, calcs } from "@/lib/registry";
+import { recordToolVisit } from "@/lib/usage";
+import { getToolSeo } from "@/lib/tool-seo";
+import { absoluteUrl, breadcrumbLd, buildHead, faqJsonLd, rootSettingsFromMatches } from "@/lib/seo";
 import {
   Accordion,
   AccordionContent,
@@ -21,6 +24,50 @@ import {
 } from "@/components/ui/accordion";
 import { ToolIcon } from "@/components/tool-card";
 import { ImageResizer, QrCodeGenerator } from "@/components/custom-tools";
+import {
+  CurrencyConverter,
+  InvoiceGenerator,
+  Sha256Generator,
+} from "@/components/batch25-custom-tools";
+import {
+  DiffChecker,
+  ImageToBase64,
+  MetaTagGenerator,
+  Sha1Generator,
+  Sha512Generator,
+} from "@/components/batch27-custom-tools";
+import {
+  BrokenLinkChecker,
+  HeadingChecker,
+  KeywordDensityChecker,
+  MetaTagAnalyzer,
+  OpenGraphChecker,
+  RobotsTxtChecker,
+  SitemapChecker,
+  WebsiteSeoAudit,
+} from "@/components/seo-audit-tools";
+import {
+  AsciiTableReference,
+  CssBeautifier,
+  CssBoxShadowGenerator,
+  HreflangTagGenerator,
+  HtmlBeautifier,
+  HtmlToMarkdownConverter,
+  JsMinifierBeautifier,
+  JsonToYamlConverter,
+  MarkdownEditor,
+  RobotsTxtGenerator,
+  SchemaMarkupGenerator,
+  XmlSitemapGenerator,
+  YamlFormatterValidator,
+} from "@/components/batch29-custom-tools";
+import {
+  ApiTester,
+  DnsLookup,
+  DomainAgeChecker,
+  RedirectChecker,
+  WhoisLookup,
+} from "@/components/batch29-fetch-tools";
 import { ScientificCalculator } from "@/components/scientific-calculator";
 
 export const Route = createFileRoute("/$slug")({
@@ -28,41 +75,48 @@ export const Route = createFileRoute("/$slug")({
     if (!bySlug[params.slug]) throw notFound();
     return { slug: params.slug };
   },
-  head: ({ loaderData }) => {
+  head: ({ loaderData, matches }) => {
+    const settings = rootSettingsFromMatches(
+      matches as unknown as { routeId?: string; loaderData?: unknown }[],
+    );
     const c = loaderData ? bySlug[loaderData.slug] : undefined;
     if (!c)
       return {
-        meta: [{ title: "Tool not found — CalcHub" }, { name: "robots", content: "noindex" }],
+        meta: [{ title: `Tool not found — ${settings.siteName}` }, { name: "robots", content: "noindex, nofollow" }],
       };
-    const title = `${c.name} — Free Online Tool | CalcHub`;
+    const seo = getToolSeo(c, settings.siteName);
+    const title = `${c.name} — Free Online Tool | ${settings.siteName}`;
     const desc = `${c.short} Use this free online ${c.name.toLowerCase()} with instant results, a clear guide, formula and worked example.`;
-    return {
-      meta: [
-        { title },
-        { name: "description", content: desc },
-        { name: "keywords", content: c.keywords },
-        { property: "og:title", content: title },
-        { property: "og:description", content: desc },
-        { property: "og:type", content: "website" },
-        { property: "og:url", content: `/${c.slug}` },
-        { name: "twitter:card", content: "summary_large_image" },
-      ],
-      links: [{ rel: "canonical", href: `/${c.slug}` }],
-      scripts: [
+    const path = `/${c.slug}`;
+    return buildHead({
+      title,
+      description: desc,
+      path,
+      keywords: c.keywords,
+      jsonLd: [
         {
-          type: "application/ld+json",
-          children: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "FAQPage",
-            mainEntity: c.faqs.map((f) => ({
-              "@type": "Question",
-              name: f.q,
-              acceptedAnswer: { "@type": "Answer", text: f.a },
-            })),
-          }),
+          "@context": "https://schema.org",
+          "@type": "WebApplication",
+          name: c.name,
+          url: absoluteUrl(path),
+          description: c.short,
+          applicationCategory: "UtilitiesApplication",
+          genre: c.category,
+          operatingSystem: "Any (web browser)",
+          browserRequirements: "Requires JavaScript",
+          inLanguage: "en",
+          isAccessibleForFree: true,
+          offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+          publisher: { "@type": "Organization", name: settings.siteName, url: absoluteUrl("/") },
         },
+        breadcrumbLd([
+          { name: "Home", path: "/" },
+          { name: "All tools", path: "/tools" },
+          { name: c.name, path },
+        ]),
+        ...(seo.faqs.length ? [faqJsonLd(seo.faqs)] : []),
       ],
-    };
+    });
   },
   notFoundComponent: () => (
     <div className="mx-auto max-w-xl px-5 py-24 text-center">
@@ -89,7 +143,9 @@ export const Route = createFileRoute("/$slug")({
 
 function Page() {
   const { slug } = Route.useLoaderData();
+  const { settings } = useLoaderData({ from: "__root__" });
   const c = bySlug[slug]!;
+  const seo = getToolSeo(c, settings.siteName);
   const initialValues = useCallback(
     (today = false) =>
       Object.fromEntries(
@@ -104,8 +160,18 @@ function Page() {
       ),
     [c],
   );
+  useEffect(() => {
+    recordToolVisit(slug);
+  }, [slug]);
   const [values, setValues] = useState<Record<string, string>>(() => initialValues());
   const [copied, setCopied] = useState("");
+  // Crypto-random tools (clientOnly) render different output on the server
+  // and the client, which breaks hydration (React error #418). Their results
+  // are computed only after mount, with a static placeholder before that.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   useEffect(() => {
     setValues(initialValues(true));
     setCopied("");
@@ -113,13 +179,17 @@ function Page() {
 
   let output: { label: string; value: string }[] = [];
   try {
-    output = c.compute(values);
+    output =
+      c.clientOnly && !mounted
+        ? [{ label: "Result", value: "Generating…" }]
+        : c.compute(values);
   } catch {
     output = [{ label: "Result", value: "—" }];
   }
-  const related = calcs
-    .filter((tool) => tool.category === c.category && tool.slug !== c.slug)
-    .slice(0, 7);
+  const related = seo.relatedSlugs.flatMap((s) => {
+    const tool = bySlug[s];
+    return tool ? [tool] : [];
+  });
 
   async function copyResult(label: string, value: string) {
     await navigator.clipboard.writeText(value);
@@ -194,6 +264,74 @@ function Page() {
                 <QrCodeGenerator />
               ) : c.custom === "scientific" ? (
                 <ScientificCalculator />
+              ) : c.custom === "invoice-generator" ? (
+                <InvoiceGenerator />
+              ) : c.custom === "currency-converter" ? (
+                <CurrencyConverter />
+              ) : c.custom === "sha256-hash-generator" ? (
+                <Sha256Generator />
+              ) : c.custom === "diff-checker" ? (
+                <DiffChecker />
+              ) : c.custom === "image-to-base64-converter" ? (
+                <ImageToBase64 />
+              ) : c.custom === "sha1-hash-generator" ? (
+                <Sha1Generator />
+              ) : c.custom === "sha512-hash-generator" ? (
+                <Sha512Generator />
+              ) : c.custom === "meta-tag-generator" ? (
+                <MetaTagGenerator />
+              ) : c.custom === "website-seo-audit" ? (
+                <WebsiteSeoAudit />
+              ) : c.custom === "broken-link-checker" ? (
+                <BrokenLinkChecker />
+              ) : c.custom === "keyword-density-checker" ? (
+                <KeywordDensityChecker />
+              ) : c.custom === "heading-checker" ? (
+                <HeadingChecker />
+              ) : c.custom === "robots-txt-checker" ? (
+                <RobotsTxtChecker />
+              ) : c.custom === "sitemap-checker" ? (
+                <SitemapChecker />
+              ) : c.custom === "open-graph-checker" ? (
+                <OpenGraphChecker />
+              ) : c.custom === "meta-tag-analyzer" ? (
+                <MetaTagAnalyzer />
+              ) : c.custom === "javascript-minifier-beautifier" ? (
+                <JsMinifierBeautifier />
+              ) : c.custom === "css-beautifier" ? (
+                <CssBeautifier />
+              ) : c.custom === "html-beautifier" ? (
+                <HtmlBeautifier />
+              ) : c.custom === "yaml-formatter-validator" ? (
+                <YamlFormatterValidator />
+              ) : c.custom === "markdown-editor" ? (
+                <MarkdownEditor />
+              ) : c.custom === "html-to-markdown-converter" ? (
+                <HtmlToMarkdownConverter />
+              ) : c.custom === "css-box-shadow-generator" ? (
+                <CssBoxShadowGenerator />
+              ) : c.custom === "ascii-table-reference" ? (
+                <AsciiTableReference />
+              ) : c.custom === "json-to-yaml-converter" ? (
+                <JsonToYamlConverter />
+              ) : c.custom === "robots-txt-generator" ? (
+                <RobotsTxtGenerator />
+              ) : c.custom === "xml-sitemap-generator" ? (
+                <XmlSitemapGenerator />
+              ) : c.custom === "schema-markup-generator" ? (
+                <SchemaMarkupGenerator />
+              ) : c.custom === "hreflang-tag-generator" ? (
+                <HreflangTagGenerator />
+              ) : c.custom === "redirect-checker" ? (
+                <RedirectChecker />
+              ) : c.custom === "domain-age-checker" ? (
+                <DomainAgeChecker />
+              ) : c.custom === "whois-lookup" ? (
+                <WhoisLookup />
+              ) : c.custom === "api-tester" ? (
+                <ApiTester />
+              ) : c.custom === "dns-lookup" ? (
+                <DnsLookup />
               ) : (
                 <div className="grid gap-7 md:grid-cols-2">
                   <div>
@@ -328,12 +466,12 @@ function Page() {
           <article className="prose-calc mt-8 rounded-2xl border border-border bg-card p-6 sm:p-8">
             <p className="section-kicker">Guide & explanation</p>
             <h2>What is the {c.name}?</h2>
-            <p>{c.about}</p>
-            {c.howToUse && (
+            <p>{seo.longDescription}</p>
+            {seo.howTo.length > 0 && (
               <>
                 <h2>How to use the {c.name}</h2>
                 <ol>
-                  {c.howToUse.map((step) => (
+                  {seo.howTo.map((step) => (
                     <li key={step}>{step}</li>
                   ))}
                 </ol>
@@ -345,10 +483,18 @@ function Page() {
                 <p>{section.body}</p>
               </section>
             ))}
-            <h2>Formula and method</h2>
-            <p>{c.formula}</p>
-            <h2>Worked example</h2>
-            <p>{c.example}</p>
+            {seo.formula !== "" && (
+              <>
+                <h2>Formula and method</h2>
+                <p>{seo.formula}</p>
+              </>
+            )}
+            {c.example !== "" && (
+              <>
+                <h2>Worked example</h2>
+                <p>{c.example}</p>
+              </>
+            )}
             <h2>Practical tips</h2>
             <ul>
               {c.tips.map((tip) => (
@@ -365,7 +511,7 @@ function Page() {
               collapsible
               className="mt-5 rounded-2xl border border-border bg-card px-5 shadow-card sm:px-6"
             >
-              {c.faqs.map((faq, index) => (
+              {seo.faqs.map((faq, index) => (
                 <AccordionItem key={faq.q} value={`faq-${index}`}>
                   <AccordionTrigger className="py-5 text-left font-display font-bold hover:no-underline">
                     {faq.q}
@@ -410,7 +556,7 @@ function Page() {
             <ShieldCheck className="size-5 text-primary" />
             <h2 className="mt-3 font-display text-base font-bold">Your numbers stay yours</h2>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              This tool runs in your browser. CalcHub does not save the values or files you enter.
+              This tool runs in your browser. {settings.siteName} does not save the values or files you enter.
             </p>
             <Link
               to="/privacy"

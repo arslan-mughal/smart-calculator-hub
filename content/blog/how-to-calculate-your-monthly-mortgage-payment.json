@@ -1,0 +1,17 @@
+{
+  "author": "CalcHub",
+  "category": "Finance",
+  "content": "A mortgage is usually the biggest monthly payment in a household budget, so it pays to understand exactly where the number comes from. The good news: the maths is a single formula, and once you know it you can check any lender's figure in seconds.\n\n## The formula\n\nThe monthly payment on a fixed-rate mortgage is:\n\n```\nM = P \u00d7 r \u00d7 (1 + r)\u207f \u00f7 ((1 + r)\u207f \u2212 1)\n```\n\n- **P** is the amount you borrow (the principal)\n- **r** is the monthly interest rate \u2014 the annual rate divided by 12, then by 100\n- **n** is the total number of monthly payments (years \u00d7 12)\n\n## A worked example\n\nTake a $350,000 mortgage at 6.5% over 30 years:\n\n- Monthly rate r = 6.5 \u00f7 12 \u00f7 100 = 0.005417\n- Number of payments n = 30 \u00d7 12 = 360\n- Monthly payment M \u2248 **$2,212.24**\n\nOver the full term you repay about $796,406 \u2014 roughly $446,406 of that is interest. That is why the rate and the term matter so much: a 1% lower rate on the same loan saves tens of thousands.\n\n## What the payment does not include\n\nThe formula above covers **principal and interest only**. Your real monthly housing cost is usually higher, because most lenders also collect:\n\n- **Property tax** \u2014 often 0.5\u20132% of the home's value per year, depending on location\n- **Homeowner's insurance**\n- **Private mortgage insurance (PMI)** if your down payment is under 20%\n- **HOA fees**, where they apply\n\nAdd those to the principal-and-interest figure before deciding what you can afford.\n\n## How to use the mortgage calculator\n\n1. Enter the **loan amount** \u2014 the price minus your down payment.\n2. Enter the **interest rate (yearly)** from your lender's offer.\n3. Enter the **term** in years (15, 20 or 30 are the most common).\n4. Read the monthly payment, total interest and total repaid \u2014 then try a shorter term or a larger down payment and watch the interest fall.\n\n## Three ways to pay less interest\n\n- **Shorten the term.** A 15-year mortgage at the same rate has a higher payment but dramatically less total interest.\n- **Pay a little extra each month.** Even $100 extra goes straight to the principal and shortens the loan.\n- **Refinance when rates fall.** If rates drop by 0.75\u20131% and you plan to stay put, refinancing can be worth the closing costs.\n\nTry it yourself with the [Mortgage Calculator](/mortgage-calculator), and compare it against the [Loan Calculator](/loan-calculator) and the [Compound Interest Calculator](/compound-interest-calculator) to see how borrowing and saving mirror each other.\n",
+  "createdAt": "2026-11-18T09:00:00.000Z",
+  "excerpt": "The mortgage formula, a worked example on a $350,000 loan, and what the payment leaves out \u2014 taxes, insurance and PMI.",
+  "slug": "how-to-calculate-your-monthly-mortgage-payment",
+  "status": "published",
+  "tags": [
+    "mortgage",
+    "home loan",
+    "interest",
+    "personal finance"
+  ],
+  "title": "How to calculate your monthly mortgage payment",
+  "updatedAt": "2026-11-18T09:00:00.000Z"
+}

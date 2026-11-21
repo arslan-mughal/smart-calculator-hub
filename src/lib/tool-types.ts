@@ -11,6 +11,7 @@ export const categories = [
   "Web & Developer",
   "Image & Media",
   "Sports",
+  "SEO Audit",
 ] as const;
 
 export type Category = (typeof categories)[number];
@@ -46,6 +47,49 @@ export type Calc = {
   details?: { heading: string; body: string }[];
   tips: string[];
   faqs: { q: string; a: string }[];
-  custom?: "image-resizer" | "qr-code" | "scientific";
+  custom?:
+    | "image-resizer"
+    | "qr-code"
+    | "scientific"
+    | "invoice-generator"
+    | "currency-converter"
+    | "sha256-hash-generator"
+    | "diff-checker"
+    | "image-to-base64-converter"
+    | "sha1-hash-generator"
+    | "sha512-hash-generator"
+    | "meta-tag-generator"
+    | "website-seo-audit"
+    | "broken-link-checker"
+    | "keyword-density-checker"
+    | "heading-checker"
+    | "robots-txt-checker"
+    | "sitemap-checker"
+    | "open-graph-checker"
+    | "meta-tag-analyzer"
+    | "javascript-minifier-beautifier"
+    | "css-beautifier"
+    | "html-beautifier"
+    | "yaml-formatter-validator"
+    | "markdown-editor"
+    | "html-to-markdown-converter"
+    | "css-box-shadow-generator"
+    | "ascii-table-reference"
+    | "json-to-yaml-converter"
+    | "robots-txt-generator"
+    | "xml-sitemap-generator"
+    | "schema-markup-generator"
+    | "hreflang-tag-generator"
+    | "redirect-checker"
+    | "domain-age-checker"
+    | "whois-lookup"
+    | "api-tester"
+    | "dns-lookup";
   popular?: boolean;
+  /**
+   * Results differ between the server render and the client (crypto-random
+   * generation, e.g. passwords, UUIDs, MAC addresses). The tool page renders
+   * a static placeholder until after mount so hydration never mismatches.
+   */
+  clientOnly?: boolean;
 };

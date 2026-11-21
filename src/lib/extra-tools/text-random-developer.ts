@@ -4,6 +4,8 @@ import {
   N,
   lines,
   numberInput,
+  secureRandomChoice,
+  secureUuid,
   seededRandom,
   selectInput,
   textArea,
@@ -28,7 +30,108 @@ const fromBase64 = (value: string) =>
   new TextDecoder().decode(
     Uint8Array.from(globalThis.atob(value.replace(/\s/g, "")), (char) => char.charCodeAt(0)),
   );
-const randomSeedInput = numberInput("seed", "Generation seed (change for a new result)", "1");
+const randomSeedInput = numberInput("seed", "Seed (deterministic \u2014 for games/demos only)", "1");
+
+/**
+ * Detect the classic catastrophic-backtracking (ReDoS) shape: a quantifier
+ * applied to a group whose body itself contains a quantifier or an
+ * alternation — e.g. `(a+)+`, `(.*)*`, `(a|b)+`, `(a{2})+`.
+ *
+ * The scan is group-aware: it tracks `(` / `)` (skipping escapes and
+ * `[...]` character classes, where `+*?|` are literals), and for every `)`
+ * followed by a quantifier (`+`, `*`, `?`, `{n...}`) it inspects that
+ * group's body for a quantifier or `|`. Legitimate patterns are untouched:
+ * `(ab)+`, `(abc)?`, `\d+`, `(?:ab)+`, `[a-z]+` all pass.
+ */
+export function hasNestedQuantifier(pattern: string): boolean {
+  // Group stack: [bodyStart] for each open group. bodyStart skips the group
+  // prefix (`(?:`, `(?=`, `(?!`, `(?<name>`) so the `?` in `(?:` is never
+  // mistaken for a quantifier inside the body.
+  const stack: number[] = [];
+
+  const isQuantifierStart = (i: number): boolean => {
+    const ch = pattern[i]!;
+    if (ch === "+" || ch === "*" || ch === "?") return true;
+    if (ch === "{") {
+      let j = i + 1;
+      while (j < pattern.length && /\d/.test(pattern[j]!)) j++;
+      return j > i + 1 && (pattern[j] === "}" || pattern[j] === ",");
+    }
+    return false;
+  };
+
+  // Does the slice [from, to) contain a quantifier or alternation, ignoring
+  // escapes and character classes?
+  const bodyHasQuantifierOrAlt = (from: number, to: number): boolean => {
+    let i = from;
+    while (i < to) {
+      const ch = pattern[i]!;
+      if (ch === "\\") {
+        i += 2;
+        continue;
+      }
+      if (ch === "[") {
+        i++;
+        if (pattern[i] === "^") i++;
+        if (pattern[i] === "]") i++;
+        while (i < to && pattern[i] !== "]") {
+          if (pattern[i] === "\\") i++;
+          i++;
+        }
+        i++;
+        continue;
+      }
+      if (ch === "+" || ch === "*" || ch === "?" || ch === "|") return true;
+      if (ch === "{" && isQuantifierStart(i)) return true;
+      i++;
+    }
+    return false;
+  };
+
+  let i = 0;
+  while (i < pattern.length) {
+    const ch = pattern[i]!;
+    if (ch === "\\") {
+      i += 2;
+      continue;
+    }
+    if (ch === "[") {
+      i++;
+      if (pattern[i] === "^") i++;
+      if (pattern[i] === "]") i++;
+      while (i < pattern.length && pattern[i] !== "]") {
+        if (pattern[i] === "\\") i++;
+        i++;
+      }
+      i++;
+      continue;
+    }
+    if (ch === "(") {
+      let bodyStart = i + 1;
+      if (pattern[bodyStart] === "?") {
+        if (pattern[bodyStart + 1] === ":") bodyStart += 2;
+        else if (pattern[bodyStart + 1] === "=" || pattern[bodyStart + 1] === "!") bodyStart += 2;
+        else if (pattern[bodyStart + 1] === "<") {
+          const close = pattern.indexOf(">", bodyStart + 2);
+          if (close !== -1) bodyStart = close + 1;
+        }
+      }
+      stack.push(bodyStart);
+      i++;
+      continue;
+    }
+    if (ch === ")") {
+      const bodyStart = stack.pop();
+      if (bodyStart !== undefined && isQuantifierStart(i + 1)) {
+        if (bodyHasQuantifierOrAlt(bodyStart, i)) return true;
+      }
+      i++;
+      continue;
+    }
+    i++;
+  }
+  return false;
+}
 
 const textTools: Calc[] = [
   tool({
@@ -634,6 +737,9 @@ const randomTools: Calc[] = [
     category: "Random Tools",
     short: "Generate a strong password with configurable length and characters.",
     popular: true,
+    // Crypto-random output differs between server and client renders, so the
+    // page shows a placeholder until after mount (see $slug.tsx).
+    clientOnly: true,
     inputs: [
       numberInput("length", "Password length", "20"),
       selectInput("chars", "Characters", "all", [
@@ -641,7 +747,6 @@ const randomTools: Calc[] = [
         ["alnum", "Letters and numbers"],
         ["letters", "Letters only"],
       ]),
-      randomSeedInput,
     ],
     compute: (v) => {
       const sets = {
@@ -650,47 +755,46 @@ const randomTools: Calc[] = [
           letters: "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz",
         },
         chars = sets[String(v.chars) as keyof typeof sets] ?? sets.all,
-        len = Math.min(128, Math.max(4, Math.floor(N(v.length)))),
-        random = seededRandom(N(v.seed));
+        len = Math.min(128, Math.max(4, Math.floor(N(v.length))));
       return [
         {
           label: "Generated password",
-          value: Array.from({ length: len }, () => chars[Math.floor(random() * chars.length)]).join(
-            "",
-          ),
+          value: Array.from({ length: len }, () => secureRandomChoice(chars)).join(""),
         },
         { label: "Length", value: M(len, 0) },
         { label: "Character pool", value: M(chars.length, 0) },
       ];
     },
     formula:
-      "Each position is selected from the chosen character pool. Use a password manager to store unique passwords.",
+      "Each position is selected with crypto.getRandomValues() from the chosen character pool. Generated securely in your browser with crypto.getRandomValues \u2014 never sent to a server. Use a password manager to store unique passwords.",
     example:
       "A 20-character password using letters, numbers and symbols provides a large search space.",
+    tips: [
+      "Generated securely in your browser with crypto.getRandomValues \u2014 never sent to a server.",
+      "Use a unique password for every account and store it in a password manager.",
+    ],
   }),
   tool({
     slug: "uuid-generator",
     name: "UUID Generator",
     category: "Random Tools",
     short: "Generate RFC 4122-style version 4 unique identifiers.",
-    inputs: [numberInput("count", "How many UUIDs", "3"), randomSeedInput],
+    // Crypto-random output differs between server and client renders, so the
+    // page shows a placeholder until after mount (see $slug.tsx).
+    clientOnly: true,
+    inputs: [numberInput("count", "How many UUIDs", "3")],
     compute: (v) => {
-      const random = seededRandom(N(v.seed)),
-        one = () =>
-          "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-            const r = Math.floor(random() * 16),
-              n = c === "x" ? r : (r & 3) | 8;
-            return n.toString(16);
-          });
       return [
         {
           label: "UUIDs",
-          value: Array.from({ length: Math.min(20, Math.max(1, N(v.count))) }, one).join("\n"),
+          value: Array.from({ length: Math.min(20, Math.max(1, Math.floor(N(v.count)))) }, () =>
+            secureUuid(),
+          ).join("\n"),
         },
       ];
     },
     formula:
-      "UUID v4 contains 122 random bits with fixed version and variant bits. Change the seed for new identifiers.",
+      "UUID v4 contains 122 random bits with fixed version and variant bits, generated with crypto.getRandomValues() / crypto.randomUUID() in your browser \u2014 never sent to a server.",
     example: "A UUID has the form xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx.",
   }),
   tool({
@@ -877,7 +981,7 @@ const developerTools: Calc[] = [
     name: "Base64 Encoder",
     category: "Web & Developer",
     short: "Encode Unicode text as Base64 directly in your browser.",
-    inputs: [textArea("text", "Text", "Hello, CalcHub! 👋")],
+    inputs: [textArea("text", "Text", "Hello, CalcHub! Café déjà vu")],
     compute: (v) => [{ label: "Base64", value: toBase64(String(v.text)) }],
     formula: "UTF-8 bytes are grouped into 6-bit chunks and represented by the Base64 alphabet.",
     example: "Hello becomes SGVsbG8=.",
@@ -1127,6 +1231,10 @@ const developerTools: Calc[] = [
     },
     formula:
       "Decode the first two Base64URL sections as JSON. The signature is deliberately not trusted or verified.",
+    tips: [
+      "Do not paste a real production token \u2014 it may contain personal data. Decoding is local and the signature is never verified.",
+      "Decoding is not authentication: a decoded payload proves nothing about who issued the token.",
+    ],
     example:
       "A typical JWT header contains alg and typ; the payload contains claims such as sub and iat.",
   }),
@@ -1142,11 +1250,17 @@ const developerTools: Calc[] = [
     ],
     compute: (v) => {
       try {
-        const re = new RegExp(
-            String(v.pattern),
-            String(v.flags).includes("g") ? String(v.flags) : String(v.flags) + "g",
-          ),
-          matches = Array.from(String(v.text).matchAll(re));
+        const pattern = String(v.pattern), text = String(v.text);
+        if (pattern.length > 200) return [{ label: "Invalid expression", value: "Pattern is too long (max 200 characters)." }];
+        if (text.length > 10000) return [{ label: "Invalid expression", value: "Test text is too long (max 10,000 characters)." }];
+        const flags = String(v.flags);
+        if ([...flags].some((f) => !"gimsuy".includes(f))) return [{ label: "Invalid expression", value: "Only flags g, i, m, s, u and y are allowed." }];
+        // Reject nested quantifiers — the classic catastrophic-backtracking shape, e.g. (a+)+, (.*)*, (a|b)+
+        // Reject nested quantifiers — the classic catastrophic-backtracking shape, e.g. (a+)+, (.*)*, (a|b)+.
+        // The old check only caught TWO quantifiers after ")" and missed (a+)+ entirely.
+        if (hasNestedQuantifier(pattern) || /\+\+|\*\*|\?\?/.test(pattern)) return [{ label: "Invalid expression", value: "Nested quantifiers are not allowed (they can freeze the browser)." }];
+        const re = new RegExp(pattern, flags.includes("g") ? flags : flags + "g"),
+          matches = Array.from(text.matchAll(re)).slice(0, 100);
         return [
           {
             label: "Matches",
@@ -1154,7 +1268,7 @@ const developerTools: Calc[] = [
               matches.map((m, i) => `${i + 1}: ${m[0]} at index ${m.index}`).join("\n") ||
               "No matches",
           },
-          { label: "Match count", value: M(matches.length, 0) },
+          { label: "Match count", value: M(matches.length, 0) + (matches.length >= 100 ? " (showing first 100)" : "") },
         ];
       } catch (error) {
         return [

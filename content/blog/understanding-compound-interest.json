@@ -1,0 +1,16 @@
+{
+  "author": "CalcHub",
+  "category": "Finance",
+  "content": "Compound interest is interest earned on interest \u2014 and over long periods it is the single biggest driver of investment growth. This draft post will explain the formula, the Rule of 72, and why starting early beats saving more later.\n\n## The formula\n\n```\nA = P(1 + r/n)^(nt)\n```\n\nWork in progress \u2014 example and charts to follow.\n",
+  "createdAt": "2026-11-18T10:00:00.000Z",
+  "excerpt": "A draft explainer on compound interest, the Rule of 72 and why time matters more than amount.",
+  "slug": "understanding-compound-interest",
+  "status": "draft",
+  "tags": [
+    "compound interest",
+    "investing",
+    "savings"
+  ],
+  "title": "Understanding compound interest",
+  "updatedAt": "2026-11-18T10:00:00.000Z"
+}

@@ -1,37 +1,39 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { buildHead, breadcrumbLd, rootSettingsFromMatches } from "@/lib/seo";
+import { createFileRoute, Link, useLoaderData } from "@tanstack/react-router";
 import { ArrowRight, Check, LockKeyhole, Zap } from "lucide-react";
 import { calcs, categories } from "@/lib/registry";
 
 export const Route = createFileRoute("/about")({
-  head: () => ({
-    meta: [
-      { title: "About CalcHub — Free, Private Online Tools" },
-      {
-        name: "description",
-        content:
-          "Learn why CalcHub builds clear, free and privacy-friendly calculators, converters and everyday online utilities.",
-      },
-      { property: "og:title", content: "About CalcHub" },
-      {
-        property: "og:description",
-        content: "Useful online tools with clear answers and no sign-up.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
+  head: ({ matches }) => {
+    const settings = rootSettingsFromMatches(
+      matches as unknown as { routeId?: string; loaderData?: unknown }[],
+    );
+    return buildHead({
+      title: `About ${settings.siteName} — Free, Private Online Tools`,
+      description: `Learn why ${settings.siteName} builds clear, free and privacy-friendly calculators, converters and everyday online utilities.`,
+      path: '/about',
+      jsonLd: [
+        breadcrumbLd([
+          { name: "Home", path: "/" },
+          { name: 'About', path: '/about' },
+        ]),
+      ],
+    });
+  },
   component: About,
 });
 
 function About() {
+  const { settings } = useLoaderData({ from: "__root__" });
+  const siteName = settings.siteName;
   return (
     <div className="mx-auto max-w-4xl px-5 py-14">
-      <p className="section-kicker">About CalcHub</p>
+      <p className="section-kicker">About {siteName}</p>
       <h1 className="mt-3 font-display text-4xl font-extrabold sm:text-5xl">
         Useful answers without the usual friction
       </h1>
       <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-foreground">
-        CalcHub is a growing collection of {calcs.length} free online calculators and utilities
+        {siteName} is a growing collection of {calcs.length} free online calculators and utilities
         across {categories.length} practical categories.
       </p>
       <div className="mt-10 grid gap-4 sm:grid-cols-3">
@@ -62,7 +64,7 @@ function About() {
         <h2>Why we built it</h2>
         <p>
           Small calculations and file tasks should not require a new account, a software download or
-          a search through cluttered pages. CalcHub puts dependable everyday tools in one organised
+          a search through cluttered pages. {siteName} puts dependable everyday tools in one organised
           place, with a consistent interface that works on phones, tablets and desktops.
         </p>
         <h2>What the results mean</h2>

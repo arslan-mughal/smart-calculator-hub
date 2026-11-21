@@ -4,15 +4,19 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
   type ErrorComponentProps,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import type { ReactNode } from "react";
 
 import appCss from "../styles.css?url";
-import { reportLovableError } from "../lib/lovable-error-reporting";
+import manrope800 from "@fontsource/manrope/files/manrope-latin-800-normal.woff2?url";
 import { SiteHeader, SiteFooter } from "../components/site-shell";
+import { buildHead, organizationLd, websiteLd } from "../lib/seo";
+import { DEFAULT_SETTINGS } from "../lib/site-settings";
+import { getSiteSettings } from "../lib/site-settings.functions";
 
 function NotFoundComponent() {
   return (
@@ -37,11 +41,11 @@ function NotFoundComponent() {
 }
 
 function ErrorComponent({ error, reset }: ErrorComponentProps) {
-  console.error(error);
+  // Log only a generic message: never log user input or error details that
+  // could contain pasted values.
+  console.error("A page failed to load");
+  void error;
   const router = useRouter();
-  useEffect(() => {
-    reportLovableError(error, { boundary: "tanstack_root_error_component" });
-  }, [error]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -75,39 +79,73 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  head: () => ({
-    // Content routes define their own specific social metadata and preview images.
-    meta: [
-      { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "CalcHub — Free Online Calculators & Tools" },
-      {
-        name: "description",
-        content: "Free, fast online calculators, converters and everyday tools.",
-      },
-      { property: "og:title", content: "CalcHub — Free Online Calculators & Tools" },
-      {
-        property: "og:description",
-        content: "Free, fast online calculators, converters and everyday tools.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
-    ],
-    links: [
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
-      { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap",
-      },
-    ],
-  }),
+  // Loads the live site settings once (Neon when configured, otherwise the
+  // local content/site-settings.json). Falls back to defaults if the store
+  // is unreachable — the public site must never fail to render for this.
+  // Child routes read it via rootSettingsFromMatches(matches) in head() and
+  // via Route.useLoaderData() in components.
+  loader: async () => {
+    try {
+      const { settings, store } = await getSiteSettings();
+      return { settings, store };
+    } catch {
+      return { settings: DEFAULT_SETTINGS, store: "files" as const };
+    }
+  },
+  head: ({ loaderData, matches }) => {
+    const settings = loaderData?.settings ?? DEFAULT_SETTINGS;
+    // Google Analytics + Search Console run on public pages only — never
+    // on /admin (admin traffic would pollute analytics, and the
+    // verification tag belongs on public pages).
+    const isAdmin = (matches ?? []).some(
+      (m) => m.routeId === "/admin" || (m.routeId ?? "").startsWith("/admin/"),
+    );
+    const gaId = isAdmin ? "" : settings.googleAnalyticsId;
+    const gscToken = isAdmin ? "" : settings.googleSearchConsoleVerification;
+    // Site-wide defaults; every content route overrides title, description, canonical and OG tags.
+    const base = buildHead({
+      title: `${settings.siteName} — ${settings.tagline}`,
+      description: settings.description,
+      path: "/",
+      jsonLd: [websiteLd(), organizationLd()],
+    });
+    return {
+      meta: [
+        { charSet: "utf-8" },
+        { name: "viewport", content: "width=device-width, initial-scale=1" },
+        { name: "theme-color", content: "#1b2a4e" },
+        { property: "og:locale", content: "en_US" },
+        // Search Console ownership verification — rendered only when a
+        // token is saved in Site Settings.
+        ...(gscToken ? [{ name: "google-site-verification", content: gscToken }] : []),
+        ...base.meta,
+      ],
+      links: [
+        { rel: "stylesheet", href: appCss },
+        // Preload the display font (Manrope 800, used for headings). Same
+        // hashed file the @fontsource CSS references, so no double download.
+        { rel: "preload", href: manrope800, as: "font", type: "font/woff2", crossOrigin: "anonymous" },
+        { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+        { rel: "manifest", href: "/site.webmanifest" },
+      ],
+      scripts: [
+        // GA4 — rendered only when a Measurement ID is saved in Site
+        // Settings. The ID is validated to /^G-[A-Z0-9]{4,}$/ on save, so
+        // interpolating it into this snippet is safe. The gtag.js URL does
+        // not validate the ID, so a test ID still proves the script loads
+        // (and therefore that the CSP allows it).
+        ...(gaId
+          ? [
+              { src: `https://www.googletagmanager.com/gtag/js?id=${gaId}`, async: true },
+              {
+                children: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${gaId}');`,
+              },
+            ]
+          : []),
+        ...base.scripts,
+      ],
+    };
+  },
   shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
@@ -130,16 +168,27 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const { settings } = Route.useLoaderData();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+
+  // The admin area is a separate app: no public header/footer.
+  if (pathname === "/admin" || pathname.startsWith("/admin/")) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <Outlet />
+      </QueryClientProvider>
+    );
+  }
 
   return (
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <div className="flex min-h-screen flex-col font-sans">
-        <SiteHeader />
+        <SiteHeader settings={settings} />
         <main className="flex-1">
           <Outlet />
         </main>
-        <SiteFooter />
+        <SiteFooter settings={settings} />
       </div>
     </QueryClientProvider>
   );

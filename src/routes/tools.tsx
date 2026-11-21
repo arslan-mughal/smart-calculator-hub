@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 import { calcs, categories } from "@/lib/registry";
 import { ToolCard } from "@/components/tool-card";
+import { absoluteUrl, breadcrumbLd, buildHead, rootSettingsFromMatches } from "@/lib/seo";
 
 export const Route = createFileRoute("/tools")({
   validateSearch: (search: Record<string, unknown>): { q?: string; category?: string } => ({
@@ -12,28 +13,40 @@ export const Route = createFileRoute("/tools")({
       ? { category: search["category"] }
       : {}),
   }),
-  head: () => ({
-    meta: [
-      { title: `All ${calcs.length} Free Online Tools & Calculators | CalcHub` },
-      {
-        name: "description",
-        content:
-          "Browse the complete CalcHub directory of free calculators, unit converters, text tools, random generators, developer utilities and sports calculators.",
-      },
-      {
-        name: "keywords",
-        content:
-          "free online tools directory, calculator directory, converters, text tools, developer tools, random generators",
-      },
-      { property: "og:title", content: "Browse Every Free CalcHub Tool" },
-      {
-        property: "og:description",
-        content: "Search and filter the complete collection of free, browser-based tools.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
+  // Search/filter variants are thin duplicates of the directory: keep them out of the index.
+  head: ({ match, matches }) => {
+    const settings = rootSettingsFromMatches(
+      matches as unknown as { routeId?: string; loaderData?: unknown }[],
+    );
+    const filtered = Boolean(match.search.q || match.search.category);
+    return buildHead({
+      title: `All ${calcs.length} Free Online Tools & Calculators | ${settings.siteName}`,
+      description:
+        `Browse the complete ${settings.siteName} directory of free calculators, unit converters, text tools, random generators, developer utilities and sports calculators.`,
+      path: "/tools",
+      keywords:
+        "free online tools directory, calculator directory, converters, text tools, developer tools, random generators",
+      noindex: filtered,
+      jsonLd: [
+        breadcrumbLd([
+          { name: "Home", path: "/" },
+          { name: "All tools", path: "/tools" },
+        ]),
+        {
+          "@context": "https://schema.org",
+          "@type": "ItemList",
+          name: `${settings.siteName} tools`,
+          numberOfItems: calcs.length,
+          itemListElement: calcs.map((tool, index) => ({
+            "@type": "ListItem",
+            position: index + 1,
+            name: tool.name,
+            url: absoluteUrl(`/${tool.slug}`),
+          })),
+        },
+      ],
+    });
+  },
   component: ToolDirectory,
 });
 
@@ -108,7 +121,7 @@ function ToolDirectory() {
         </p>
       </div>
       {filtered.length ? (
-        <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="tool-card-grid mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filtered.map((tool) => (
             <ToolCard key={tool.slug} tool={tool} />
           ))}

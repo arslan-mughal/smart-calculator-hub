@@ -39,11 +39,33 @@ export function ImageResizer() {
     [result],
   );
 
+  const [fileError, setFileError] = useState("");
+  const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
+  const MAX_DIMENSION = 8000;
+
   function chooseFile(file?: File) {
-    if (!file || !file.type.startsWith("image/")) return;
+    setFileError("");
+    if (!file) return;
+    if (file.type === "image/svg+xml") {
+      setFileError("SVG images are not accepted — please choose a JPG, PNG, WebP, GIF or BMP file.");
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      setFileError("Please choose an image file.");
+      return;
+    }
+    if (file.size > MAX_FILE_BYTES) {
+      setFileError("That image is over 10 MB. Please choose a smaller file.");
+      return;
+    }
     const url = URL.createObjectURL(file);
     const image = new Image();
     image.onload = () => {
+      if (image.naturalWidth > MAX_DIMENSION || image.naturalHeight > MAX_DIMENSION) {
+        URL.revokeObjectURL(url);
+        setFileError(`That image is ${image.naturalWidth} x ${image.naturalHeight} px — images over ${MAX_DIMENSION} px on either side are not supported.`);
+        return;
+      }
       setSource({
         url,
         name: file.name,
@@ -59,19 +81,19 @@ export function ImageResizer() {
   }
 
   function changeWidth(value: number) {
-    setWidth(value);
+    setWidth(Math.max(1, Math.min(MAX_DIMENSION, value || 1)));
     if (locked && source)
       setHeight(Math.max(1, Math.round((value * source.height) / source.width)));
   }
 
   function changeHeight(value: number) {
-    setHeight(value);
+    setHeight(Math.max(1, Math.min(MAX_DIMENSION, value || 1)));
     if (locked && source) setWidth(Math.max(1, Math.round((value * source.width) / source.height)));
   }
 
   function resize() {
     const image = imageRef.current;
-    if (!image || !source || width < 1 || height < 1) return;
+    if (!image || !source || width < 1 || height < 1 || width > MAX_DIMENSION || height > MAX_DIMENSION) return;
     const canvas = document.createElement("canvas");
     canvas.width = width;
     canvas.height = height;
@@ -143,6 +165,7 @@ export function ImageResizer() {
                 <input
                   type="number"
                   min="1"
+                  max="8000"
                   value={width}
                   onChange={(e) => changeWidth(Number(e.target.value))}
                   className="mt-1.5 w-full rounded-lg border border-input bg-background px-3 py-2.5 outline-none focus:ring-2 focus:ring-ring"
@@ -161,6 +184,7 @@ export function ImageResizer() {
                 <input
                   type="number"
                   min="1"
+                  max="8000"
                   value={height}
                   onChange={(e) => changeHeight(Number(e.target.value))}
                   className="mt-1.5 w-full rounded-lg border border-input bg-background px-3 py-2.5 outline-none focus:ring-2 focus:ring-ring"
@@ -213,6 +237,9 @@ export function ImageResizer() {
             </button>
           </div>
         </div>
+      )}
+      {fileError && (
+        <p role="alert" className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{fileError}</p>
       )}
       {result && (
         <div className="flex flex-col items-center rounded-2xl border border-primary/20 bg-secondary p-6 text-center">

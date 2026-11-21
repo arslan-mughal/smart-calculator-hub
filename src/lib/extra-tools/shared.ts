@@ -23,6 +23,7 @@ export type ToolSeed = Pick<Calc, "slug" | "name" | "category" | "short" | "inpu
       | "faqs"
       | "custom"
       | "popular"
+      | "clientOnly"
     >
   >;
 
@@ -120,10 +121,55 @@ export function unitConverter(
   });
 }
 
+// Deterministic pseudo-random generator (LCG) — ONLY for games, demos and
+// reproducible picks/shuffles. It is NOT cryptographically secure and MUST
+// NEVER be used for passwords, tokens, UUIDs or anything security-sensitive:
+// the same seed always produces the same sequence.
 export function seededRandom(seed: number) {
   let value = Math.abs(Math.floor(seed)) || 1;
   return () => {
     value = (value * 1664525 + 1013904223) % 4294967296;
     return value / 4294967296;
   };
+}
+
+// Cryptographically secure randomness (Web Crypto). Throws if unavailable.
+function secureBytes(length: number): Uint8Array {
+  const cryptoObj = globalThis.crypto;
+  if (!cryptoObj || typeof cryptoObj.getRandomValues !== "function") {
+    throw new Error("Secure random generation is not available in this browser");
+  }
+  const bytes = new Uint8Array(length);
+  cryptoObj.getRandomValues(bytes);
+  return bytes;
+}
+
+/** Secure random integer in [0, max) using rejection sampling (no modulo bias). */
+export function secureRandomInt(max: number): number {
+  if (!Number.isInteger(max) || max <= 0) throw new Error("secureRandomInt needs a positive integer");
+  // Largest multiple of max below 2^32, to reject biased remainders.
+  const limit = Math.floor(4294967296 / max) * max;
+  const buf = new Uint32Array(1);
+  for (;;) {
+    globalThis.crypto.getRandomValues(buf);
+    const v = buf[0]!;
+    if (v < limit) return v % max;
+  }
+}
+
+/** Securely pick one character from `chars` (no modulo bias). */
+export function secureRandomChoice(chars: string): string {
+  if (!chars.length) throw new Error("Character pool is empty");
+  return chars[secureRandomInt(chars.length)]!;
+}
+
+/** Secure UUID v4 (RFC 4122). Uses crypto.randomUUID() when available. */
+export function secureUuid(): string {
+  const c = globalThis.crypto;
+  if (c && typeof c.randomUUID === "function") return c.randomUUID();
+  const b = secureBytes(16);
+  b[6] = (b[6]! & 0x0f) | 0x40; // version 4
+  b[8] = (b[8]! & 0x3f) | 0x80; // variant 10
+  const hex = Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
 }
