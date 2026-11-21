@@ -86,7 +86,10 @@ export const Route = createFileRoute("/$slug")({
       };
     const seo = getToolSeo(c, settings.siteName);
     const title = `${c.name} — Free Online Tool | ${settings.siteName}`;
-    const desc = `${c.short} Use this free online ${c.name.toLowerCase()} with instant results, a clear guide, formula and worked example.`;
+    // Keep the description a complete sentence: append the tail only when the whole thing fits
+    // the ~160 character snippet limit (otherwise clampDescription would cut it mid-sentence with "…").
+    const descTail = ` Free online ${c.name.toLowerCase()} with instant results, formula and a worked example.`;
+    const desc = c.short.length + descTail.length <= 160 ? `${c.short}${descTail}` : c.short;
     const path = `/${c.slug}`;
     return buildHead({
       title,

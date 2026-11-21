@@ -13,6 +13,15 @@ export default defineConfig(({ mode }) => {
   for (const [key, value] of Object.entries(loadEnv(mode, process.cwd(), ""))) {
     if (process.env[key] === undefined) process.env[key] = value;
   }
+  // VITE_SITE_URL is inlined at BUILD time (canonical, og:url, og:image, JSON-LD). If it is
+  // unset or empty, src/lib/seo.ts would fall back to http://localhost:3000 in production.
+  // On Vercel, fall back to the project's production domain instead (system variable
+  // VERCEL_PROJECT_PRODUCTION_URL, e.g. "my-site.vercel.app" or a custom domain). An explicit
+  // VITE_SITE_URL always wins.
+  if (!process.env["VITE_SITE_URL"]?.trim()) {
+    const vercelHost = process.env["VERCEL_PROJECT_PRODUCTION_URL"]?.trim();
+    if (vercelHost) process.env["VITE_SITE_URL"] = `https://${vercelHost}`;
+  }
   return {
     plugins: [
       tanstackStart({

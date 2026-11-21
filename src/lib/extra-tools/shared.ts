@@ -29,8 +29,10 @@ export type ToolSeed = Pick<Calc, "slug" | "name" | "category" | "short" | "inpu
 
 export function tool(seed: ToolSeed): Calc {
   const title = seed.name.toLowerCase();
+  // Categories like "Random Tools" / "Text Tools" already end in "tools"; don't append it twice.
+  const categoryLabel = seed.category.toLowerCase().replace(/\s+tools?$/, "");
   return {
-    keywords: `${title}, free ${title}, online ${title}, ${seed.category.toLowerCase()} tools`,
+    keywords: `${title}, free ${title}, online ${title}, ${categoryLabel} tools`,
     about: `${seed.short} This free online ${title} gives you an instant answer without an account, a download or sending your entries to a server. It is designed for quick everyday use on desktop and mobile.`,
     formula:
       "Enter the requested values and the tool applies the calculation or transformation shown above. Results update as you type.",

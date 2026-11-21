@@ -107,3 +107,27 @@ The `/blog` list and its server function return **metadata only** (slug,
 title, excerpt, category, tags, status, dates — never `content`), so 200+
 posts don't bloat the list payload. The detail route loads one full post.
 The admin blog table is paginated (25/page default).
+
+## SEO audit — 22 Nov 2026
+
+Fixed:
+- **Canonical/OG URLs pointed at `http://localhost:3000`** in production because `VITE_SITE_URL`
+  was unset at build time. `vite.config.ts` now falls back to `VERCEL_PROJECT_PRODUCTION_URL`;
+  still set `VITE_SITE_URL` explicitly (it is inlined at build time — redeploy after changing it).
+- **FAQ answers were missing from the server-rendered HTML** (Radix unmounts closed accordion
+  content). `AccordionContent` now uses `forceMount`, so the text the FAQPage JSON-LD describes
+  is present for crawlers.
+- Tool meta descriptions no longer end in a mid-sentence "…"; "random tools tools" keyword typo.
+- Homepage H1 now contains "Free online calculators".
+- Sitemap: blog posts carry a real `<lastmod>` (their `updatedAt`). Tool pages omit it on purpose.
+
+Open (needs a decision or fresh data):
+- Tax and paycheck tools use **2025** US figures (brackets, standard deduction, Social Security
+  wage base) and say "2025" in titles/copy/keywords. Update from the current IRS/SSA releases.
+- `/tools?category=X` pages are `Disallow`ed and noindex, so categories cannot rank. Dedicated
+  category landing pages (unique H1/intro, indexable, in the sitemap) would add targets.
+- ~320 generated guide posts share one template and one publish date; consider merging them
+  into the tool pages or making each materially unique.
+- `Organization.logo` and the web manifest only reference `favicon.ico`; add square PNG logo/icons
+  (192 and 512 px) for rich results and installability.
+- HTML responses are not CDN-cached (`s-maxage`); caching public pages would improve TTFB.

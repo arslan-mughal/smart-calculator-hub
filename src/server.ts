@@ -24,18 +24,33 @@ function robotsTxt(origin: string): string {
   ].join("\n");
 }
 
-function sitemapXml(origin: string, blogSlugs: string[]): string {
-  const paths = [
+type SitemapPost = { slug: string; updatedAt?: string };
+
+// <lastmod> only where we really know the date (blog posts). A made-up lastmod on every page
+// gets ignored by Google, so tool pages and static pages deliberately omit it.
+function lastmodTag(iso: string | undefined): string {
+  return iso && /^\d{4}-\d{2}-\d{2}/.test(iso) ? `<lastmod>${iso.slice(0, 10)}</lastmod>` : "";
+}
+
+function sitemapXml(origin: string, blogPosts: SitemapPost[]): string {
+  const paths: { loc: string; priority: string; lastmod?: string }[] = [
     { loc: "/", priority: "1.0" },
     { loc: "/tools", priority: "0.9" },
     ...calcs.map((tool) => ({ loc: `/${tool.slug}`, priority: tool.popular ? "0.9" : "0.8" })),
     { loc: "/blog", priority: "0.8" },
-    ...blogSlugs.map((slug) => ({ loc: `/blog/${slug}`, priority: "0.7" })),
+    ...blogPosts.map((post) => ({
+      loc: `/blog/${post.slug}`,
+      priority: "0.7",
+      ...(post.updatedAt ? { lastmod: post.updatedAt } : {}),
+    })),
     { loc: "/about", priority: "0.4" },
     { loc: "/privacy", priority: "0.3" },
   ];
   const urls = paths
-    .map((p) => `  <url><loc>${origin}${p.loc}</loc><priority>${p.priority}</priority></url>`)
+    .map(
+      (p) =>
+        `  <url><loc>${origin}${p.loc}</loc>${lastmodTag(p.lastmod)}<priority>${p.priority}</priority></url>`,
+    )
     .join("\n");
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
 }
@@ -52,10 +67,10 @@ async function seoFile(request: Request): Promise<Response | null> {
   if (pathname === "/sitemap.xml") {
     // Blog entries are best-effort: if the store is unreachable the sitemap
     // still serves with the tool pages (200+ blog URLs when present).
-    const blogSlugs = await listBlogPosts()
-      .then((posts) => posts.map((p) => p.slug))
-      .catch(() => [] as string[]);
-    return new Response(sitemapXml(origin, blogSlugs), {
+    const blogPosts = await listBlogPosts()
+      .then((posts) => posts.map((p) => ({ slug: p.slug, updatedAt: p.updatedAt })))
+      .catch(() => [] as SitemapPost[]);
+    return new Response(sitemapXml(origin, blogPosts), {
       headers: { "content-type": "application/xml; charset=utf-8", "cache-control": "public, max-age=3600" },
     });
   }

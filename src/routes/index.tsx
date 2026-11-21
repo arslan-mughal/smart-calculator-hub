@@ -77,7 +77,7 @@ function Index() {
                 to install
               </div>
               <h1 className="mt-6 max-w-2xl font-display text-4xl font-extrabold leading-[1.08] tracking-tight sm:text-5xl lg:text-6xl">
-                Everyday answers, <span className="text-primary">all in one place.</span>
+                Free online calculators for <span className="text-primary">everyday answers.</span>
               </h1>
               <p className="mt-5 max-w-xl text-lg leading-8 text-muted-foreground">
                 Calculators, converters and practical digital tools that just work. Open a tool, get
